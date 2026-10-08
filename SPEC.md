@@ -709,11 +709,11 @@ Rules: complete phases **in order**. A phase is done only when all its acceptanc
 
 ### Phase 0 — Accounts & scaffolding *(Raghav + agent, ~1 h)*
 - [ ] Raghav: create GitHub account/repo `portfolio` (private is fine), Vercel account (sign in with GitHub). *(See §20.1)*
-- [ ] Scaffold: `pnpm create next-app` (TypeScript, ESLint, Tailwind, App Router, `src/`, Turbopack), commit lockfile.
-- [ ] Add Prettier, Vitest, Playwright, shadcn/ui init, `.env.example`, `AGENTS.md`, `README.md`.
-- [ ] Copy this `SPEC.md` into the repo root.
+- [x] Scaffold: `pnpm create next-app` (TypeScript, ESLint, Tailwind, App Router, `src/`, Turbopack), commit lockfile.
+- [x] Add Prettier, Vitest, Playwright, shadcn/ui init, `.env.example`, `AGENTS.md`, `README.md`.
+- [x] Copy this `SPEC.md` into the repo root.
 - [ ] Import repo into Vercel; first deploy of the blank app succeeds.
-- [ ] Record the caching approach chosen (§6.3) in §18.
+- [x] Record the caching approach chosen (§6.3) in §18.
 
 **AC:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all pass locally and in Vercel; the `*.vercel.app` URL loads.
 
@@ -836,7 +836,9 @@ Tests must not hit the production DB or Blob store. Use a separate Neon branch/d
 | D6 | 2026‑10‑08 | No skill-level bars | Recruiters find self-rated percentages meaningless; chips are cleaner | Progress bars / star ratings |
 | D7 | 2026‑10‑08 | Fixed accent presets, no colour picker | Guarantees AA contrast in both themes | Free colour picker |
 | D8 | 2026‑10‑08 | Admin edits content + section order/visibility, not layout | Keeps design coherent and code simple | Page builder |
-| D9 | _TBD (Phase 0)_ | Caching approach: Cache Components (`use cache` + `cacheTag`/`updateTag`) **or** `revalidatePath` | Depends on scaffold defaults of installed Next version | — |
+| D9 | 2026‑10‑08 | Caching approach: **Cache Components**. `cacheComponents: true` in `next.config.ts`; public reads use `'use cache'` + `cacheTag('content')`; admin mutations call `invalidateContent()`, which wraps `updateTag('content')`. | Scaffolded with Next 16.4.0 (`--cache-components`). Tag-based invalidation is targeted and matches the "content" tag design in §5.3 | `revalidatePath('/', 'layout')` (coarser; re-renders everything) |
+| D10 | 2026‑10‑08 | Agent tooling lives outside the §14.1 app structure: `CLAUDE.md` (root), `.claude/skills/` (spec-phase, admin-mutation, done-gate, push-progress) and `.claude/notes/` (progress log; `scratch/` git-ignored) | Raghav asked the agent to set up its own rules, skills and working folder; keeps the per-task process repeatable across sessions | Keeping rules only in chat (lost between sessions) |
+| D11 | 2026‑10‑08 | *(assumed)* Tooling details: Node pinned to **24.x** (`engines` + `.nvmrc`, matches local install; satisfies "22 LTS or newer"); dev-only `eslint-config-prettier` added so ESLint and Prettier don't conflict; shadcn/ui init (Radix, Nova preset = Lucide + Geist) brings its own runtime deps `radix-ui`, `class-variance-authority`, `cn` (shadcn's clsx + tailwind-merge replacement), `shadcn` (for `shadcn/tailwind.css`) and `tw-animate-css`, all treated as part of the "shadcn/ui" allow-list entry. Vitest sets the `@` alias itself (no `vite-tsconfig-paths`). | Same Node major locally and on Vercel; smallest tooling footprint that works | `vite-tsconfig-paths`, `@vitejs/plugin-react` (not needed for logic-only unit tests) |
 
 New decisions are appended; old ones are never edited — supersede them with a new row.
 
