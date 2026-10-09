@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "@/components/ui/sonner";
 
 // SPEC §9.1: every admin page is noindex/nofollow.
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function AdminRootLayout({ children }: LayoutProps<"/admin">) {
-  return children;
+  return (
+    <>
+      {children}
+      <Toaster position="bottom-right" closeButton />
+    </>
+  );
 }

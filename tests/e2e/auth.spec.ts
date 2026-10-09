@@ -1,24 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
-import { neon } from "@neondatabase/serverless";
-import { expect, test, type Page } from "@playwright/test";
-import { E2E_PASSWORD } from "./constants";
+import { expect, test } from "@playwright/test";
+import { logIn, sql } from "./helpers";
 
 // FR-ADM-01 / SEC-01..03 / SEC-06 against the TEST database. Serial, desktop only: the lockout
 // counters live in one shared table, and the rest is viewport-independent.
 test.describe.configure({ mode: "serial" });
 test.skip(({ isMobile }) => isMobile, "auth flow is viewport-independent");
 
-const sql = neon(process.env.DATABASE_URL_TEST!);
-
 test.beforeEach(async () => {
   // Test DB only (guarded by the config); clears lockout state between tests.
   await sql`delete from login_attempts`;
 });
-
-async function logIn(page: Page, password = E2E_PASSWORD) {
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-}
 
 test("logged-out /admin/* redirects to login and remembers the target", async ({
   page,
