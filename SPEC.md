@@ -708,17 +708,17 @@ export async function updateProject(input: unknown): Promise<ActionResult<Projec
 Rules: complete phases **in order**. A phase is done only when all its acceptance criteria (AC) pass and the Definition of Done (§16.3) is met. Tick boxes in this file as tasks complete (that's how progress is tracked). Each phase should be one or a few small PRs.
 
 ### Phase 0 — Accounts & scaffolding *(Raghav + agent, ~1 h)*
-- [ ] Raghav: create GitHub account/repo `portfolio` (private is fine), Vercel account (sign in with GitHub). *(See §20.1)*
+- [x] Raghav: create GitHub account/repo `portfolio` (private is fine), Vercel account (sign in with GitHub). *(See §20.1)*
 - [x] Scaffold: `pnpm create next-app` (TypeScript, ESLint, Tailwind, App Router, `src/`, Turbopack), commit lockfile.
 - [x] Add Prettier, Vitest, Playwright, shadcn/ui init, `.env.example`, `AGENTS.md`, `README.md`.
 - [x] Copy this `SPEC.md` into the repo root.
-- [ ] Import repo into Vercel; first deploy of the blank app succeeds.
+- [x] Import repo into Vercel; first deploy of the blank app succeeds.
 - [x] Record the caching approach chosen (§6.3) in §18.
 
 **AC:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` all pass locally and in Vercel; the `*.vercel.app` URL loads.
 
 ### Phase 1 — Database, schema, seed
-- [ ] Vercel → Storage → create **Neon** database, connect to project (Production + Preview + Development); `vercel env pull .env.local`.
+- [x] Vercel → Storage → create **Neon** database, connect to project (Production + Preview + Development); `vercel env pull .env.local`.
 - [ ] Implement `schema.ts` exactly per §7 (incl. checks, enums, FKs, indexes, uniques); generate first migration.
 - [ ] `scripts/migrate.ts`, `scripts/seed.ts`, `content/seed.json` (filled from Raghav's resume — §17 Q3).
 - [ ] Zod schemas for every entity in `src/lib/validation/` with unit tests for limits, URL rules, slug rules, section-array rules.
