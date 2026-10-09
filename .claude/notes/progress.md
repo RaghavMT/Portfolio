@@ -2,7 +2,9 @@
 
 _Updated at the end of every task. Newest phase on top._
 
-## Phase 1 — Database, schema, seed · in progress
+## Phase 1 — Database, schema, seed · done (2026-10-09)
+
+Vercel production deploy of `da9b922` confirmed green by Raghav (reported, not seen by the agent). Phase 2 is next.
 
 ### Done (2026-10-09)
 - Neon (Free) created via Vercel → Storage, connected to Development + Preview + Production (confirmed by Raghav).
@@ -24,8 +26,7 @@ _Updated at the end of every task. Newest phase on top._
 - Second `pnpm db:seed` → "already seeded … nothing changed"; counts identical.
 - DB constraints verified by 9 deliberately bad inserts, all rejected by the expected constraint (singleton id, reserved/bad/duplicate slug, cover without alt, end before start, duplicate skill case-insensitive, short message body, unknown accent).
 
-### Remaining for Phase 1
-- Vercel production build runs the migrate step: confirm on the next push to `main` that the deployment is green and its log shows `[migrate] ok`.
+### Notes
 - Heads-up for Raghav: Neon is shared by dev/preview/prod (SPEC §20.3), and it now holds the TODO seed. Real content goes in via seed.json before first launch seed, or via the admin panel (Phase 8).
 
 ## Phase 0 — Accounts & scaffolding · done (2026-10-09)
