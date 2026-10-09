@@ -5,6 +5,8 @@ import {
   certifications,
   education,
   experiences,
+  skillGroups,
+  skills,
   socialLinks,
 } from "../db/schema";
 
@@ -51,3 +53,26 @@ export function listExperiences() {
 export type AdminExperience = Awaited<
   ReturnType<typeof listExperiences>
 >[number];
+
+export type AdminSkill = typeof skills.$inferSelect;
+export type AdminSkillGroup = typeof skillGroups.$inferSelect & {
+  skills: AdminSkill[];
+};
+
+/** Every group (hidden included) with its skills, both in display order. */
+export async function listSkillGroups(): Promise<AdminSkillGroup[]> {
+  const [groups, items] = await Promise.all([
+    db
+      .select()
+      .from(skillGroups)
+      .orderBy(asc(skillGroups.sortOrder), desc(skillGroups.createdAt)),
+    db
+      .select()
+      .from(skills)
+      .orderBy(asc(skills.sortOrder), desc(skills.createdAt)),
+  ]);
+  return groups.map((group) => ({
+    ...group,
+    skills: items.filter((s) => s.groupId === group.id),
+  }));
+}

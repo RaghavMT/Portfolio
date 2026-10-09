@@ -28,6 +28,8 @@ type Props<T extends { id: string; visible: boolean }> = {
   /** The entity's form; remount-safe: it is keyed by item id. */
   renderForm: (args: { item?: T; onDone: () => void }) => ReactNode;
   sheetDescription: string;
+  /** Overrides the delete dialog text, e.g. skill groups say how many skills go with them. */
+  deleteDescription?: (item: T) => ReactNode;
   empty: { title: string; hint: string };
   actions: {
     reorder: (ids: string[]) => Promise<ActionResult<void>>;
@@ -47,6 +49,7 @@ export function ResourceManager<T extends { id: string; visible: boolean }>({
   renderSummary,
   renderForm,
   sheetDescription,
+  deleteDescription,
   empty,
   actions,
 }: Props<T>) {
@@ -158,7 +161,11 @@ export function ResourceManager<T extends { id: string; visible: boolean }>({
         open={deleting !== null}
         onOpenChange={(o) => !o && setDeleting(null)}
         title={`Delete “${deleting ? getLabel(deleting) : ""}”?`}
-        description="It will disappear from your site immediately."
+        description={
+          deleting && deleteDescription
+            ? deleteDescription(deleting)
+            : "It will disappear from your site immediately."
+        }
         pending={pending}
         onConfirm={confirmDelete}
       />
