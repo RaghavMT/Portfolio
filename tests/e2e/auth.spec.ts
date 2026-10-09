@@ -6,6 +6,9 @@ import { logIn, sql } from "./helpers";
 // counters live in one shared table, and the rest is viewport-independent.
 test.describe.configure({ mode: "serial" });
 test.skip(({ isMobile }) => isMobile, "auth flow is viewport-independent");
+// A private client IP (the first x-forwarded-for hop, D23) keeps the lockout counters here apart from
+// the admin specs, which log in from the default IP in parallel workers.
+test.use({ extraHTTPHeaders: { "x-forwarded-for": "203.0.113.50" } });
 
 test.beforeEach(async () => {
   // Test DB only (guarded by the config); clears lockout state between tests.

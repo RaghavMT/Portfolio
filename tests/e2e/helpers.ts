@@ -10,9 +10,11 @@ export async function logIn(page: Page, password = E2E_PASSWORD) {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
-/** Signs in and lands on the dashboard; clears lockout state first so tests can't lock each other out. */
+/**
+ * Signs in and lands on the dashboard. Only failed logins are counted (D23) and auth.spec.ts uses
+ * its own client IP, so admin specs never touch the shared lockout state.
+ */
 export async function loginAsAdmin(page: Page) {
-  await sql`delete from login_attempts`;
   await page.goto("/admin/login");
   await logIn(page);
   await expect(page).toHaveURL(/\/admin$/);

@@ -29,9 +29,25 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
+  // Admin specs change the shared test database (and expire the public cache) while they run, so they
+  // run in their own project AFTER the read-only visitor/auth specs instead of beside them.
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "chromium",
+      testIgnore: /admin-.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile",
+      testIgnore: /admin-.*\.spec\.ts/,
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "admin",
+      testMatch: /admin-.*\.spec\.ts/,
+      dependencies: ["chromium", "mobile"],
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     command: `pnpm build && pnpm start -p ${PORT}`,
