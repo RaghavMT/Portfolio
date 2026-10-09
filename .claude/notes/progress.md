@@ -11,8 +11,22 @@ _Updated at the end of every task. Newest phase on top._
 - Read-only check over Neon's HTTP SQL endpoint: both URLs → `select 1` ok, db `neondb`, Postgres 18.6, 0 public tables (fresh).
 - The CLI appended `.vercel` and `.env*` to `.gitignore`. That re-ignored `.env.example`, so the edit was reverted; the existing rules already cover both.
 
-### Next
-- Part B of the plan: schema.ts, first migration, migrate/seed scripts, `content/seed.json` (TODO placeholders), Zod schemas + tests. Seed section order: default (Raghav has ~5 months' experience).
+### Built (2026-10-09)
+- `src/server/db/schema.ts` (11 tables, 4 enums, checks, FKs, indexes), `client.ts` (neon-http), `drizzle.config.ts`, migration `drizzle/0000_init.sql`.
+- `scripts/migrate.ts`, `scripts/seed.ts`, `scripts/resolve-ts.mjs`; `content/seed.json` is all `TODO:` placeholders (resume pending, SPEC §17 Q3).
+- Zod schemas for every entity in `src/lib/validation/` + `src/lib/slug.ts`. Tests written first and watched failing, then green.
+- New deps (all §6.1): drizzle-orm, @neondatabase/serverless, zod, drizzle-kit (dev). Decision Log D12–D14.
+
+### AC evidence
+- `pnpm test` → 6 files, 122 tests passed. `pnpm lint`, `pnpm typecheck`, `pnpm format:check` exit 0.
+- `pnpm build` → compiled; migrate step prints `skipped (VERCEL_ENV=unset)` locally, as designed.
+- Fresh Neon DB: `pnpm db:migrate` → `ok` (1 migration recorded). `pnpm db:seed` → 1 site_settings, 2 social links, 3 projects, 1 experience, 1 education, 3 skill groups, 3 skills, 1 certification.
+- Second `pnpm db:seed` → "already seeded … nothing changed"; counts identical.
+- DB constraints verified by 9 deliberately bad inserts, all rejected by the expected constraint (singleton id, reserved/bad/duplicate slug, cover without alt, end before start, duplicate skill case-insensitive, short message body, unknown accent).
+
+### Remaining for Phase 1
+- Vercel production build runs the migrate step: confirm on the next push to `main` that the deployment is green and its log shows `[migrate] ok`.
+- Heads-up for Raghav: Neon is shared by dev/preview/prod (SPEC §20.3), and it now holds the TODO seed. Real content goes in via seed.json before first launch seed, or via the admin panel (Phase 8).
 
 ## Phase 0 — Accounts & scaffolding · done (2026-10-09)
 

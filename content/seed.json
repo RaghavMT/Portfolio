@@ -1,0 +1,92 @@
+{
+  "siteSettings": {
+    "fullName": "Raghav Tibra",
+    "headline": "Software Engineer",
+    "tagline": "TODO: One line about what you build and what you care about.",
+    "location": "TODO: City, India",
+    "openToWork": true,
+    "openToWorkText": "TODO: e.g. Open to SDE-1 roles",
+    "aboutMd": "TODO: Write 2–3 short paragraphs about yourself: what you work on now, what you're good at, and what kind of role you want next.\n\n- TODO: one highlight with a number\n- TODO: another highlight",
+    "contactEmail": "todo@example.com",
+    "contactFormEnabled": true,
+    "seoDescription": "TODO: One sentence about you for Google results (max 160 characters).",
+    "accent": "indigo",
+    "sections": [
+      { "key": "about", "visible": true },
+      { "key": "projects", "visible": true },
+      { "key": "experience", "visible": true },
+      { "key": "skills", "visible": true },
+      { "key": "education", "visible": true },
+      { "key": "certifications", "visible": true },
+      { "key": "contact", "visible": true }
+    ]
+  },
+  "socialLinks": [
+    { "platform": "github", "url": "https://github.com/RaghavMT" },
+    { "platform": "linkedin", "url": "https://www.linkedin.com/in/TODO" }
+  ],
+  "projects": [
+    {
+      "slug": "todo-project-one",
+      "title": "TODO: Project one",
+      "summary": "TODO: One sentence on what it does and who it's for.",
+      "role": "TODO: e.g. Solo project",
+      "problemMd": "TODO: What problem did this solve, and why did it matter?",
+      "approachMd": "TODO: What did you build, and how? Mention the interesting technical choices.",
+      "outcomeMd": "TODO: Results: users, speed-ups, metrics, or what you learned.",
+      "tech": ["TODO"],
+      "status": "published",
+      "featured": true
+    },
+    {
+      "slug": "todo-project-two",
+      "title": "TODO: Project two",
+      "summary": "TODO: One sentence on what it does and who it's for.",
+      "tech": ["TODO"],
+      "status": "published",
+      "featured": false
+    },
+    {
+      "slug": "todo-draft-project",
+      "title": "TODO: Draft project (not public)",
+      "summary": "TODO: Drafts never appear on the public site.",
+      "status": "draft"
+    }
+  ],
+  "experiences": [
+    {
+      "company": "TODO: Company",
+      "title": "TODO: Job title",
+      "employmentType": "full_time",
+      "location": "TODO: City or Remote",
+      "startOn": "2026-05",
+      "summaryMd": "TODO: One or two sentences about the team and what you work on.",
+      "highlights": [
+        "TODO: Start with a verb and include a number, e.g. Cut page load time by 40%"
+      ],
+      "tech": ["TODO"]
+    }
+  ],
+  "education": [
+    {
+      "institution": "TODO: University",
+      "degree": "TODO: e.g. B.Tech",
+      "field": "TODO: e.g. Computer Science",
+      "startOn": "2022-08",
+      "endOn": "2026-05",
+      "grade": "TODO: e.g. CGPA 8.5/10"
+    }
+  ],
+  "skillGroups": [
+    { "name": "Languages", "skills": ["TODO"] },
+    { "name": "Frameworks", "skills": ["TODO"] },
+    { "name": "Tools", "skills": ["TODO"] }
+  ],
+  "certifications": [
+    {
+      "kind": "certification",
+      "title": "TODO: Certification name",
+      "issuer": "TODO: Issuer"
+    }
+  ]
+}
