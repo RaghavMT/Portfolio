@@ -60,28 +60,56 @@ export const sectionsSchema = z
  * The editable fields of the `site_settings` singleton. Server-managed columns
  * (id, session_version, resume_updated_at, updated_at) are not part of the form.
  */
-export const siteSettingsSchema = z
-  .object({
-    fullName: requiredText(80),
-    headline: requiredText(120),
-    tagline: optionalText(240),
-    location: optionalText(80),
-    openToWork: z.boolean().default(true),
-    openToWorkText: optionalText(80),
-    aboutMd: markdown(4000),
-    avatarUrl: optionalHttpsUrl,
-    avatarAlt: optionalText(160),
-    resumeUrl: optionalHttpsUrl,
-    contactEmail: emailAddress,
-    contactFormEnabled: z.boolean().default(true),
-    /** Null → rendered as "{fullName} — {headline}". */
-    seoTitle: optionalText(70),
-    seoDescription: requiredText(160),
-    ogImageUrl: optionalHttpsUrl,
-    accent: z.enum(ACCENTS).default("indigo"),
-    sections: sectionsSchema.default(DEFAULT_SECTIONS),
-  })
-  .superRefine(altRequiredWithImage("avatarUrl", "avatarAlt"));
+const siteSettingsShape = z.object({
+  fullName: requiredText(80),
+  headline: requiredText(120),
+  tagline: optionalText(240),
+  location: optionalText(80),
+  openToWork: z.boolean().default(true),
+  openToWorkText: optionalText(80),
+  aboutMd: markdown(4000),
+  avatarUrl: optionalHttpsUrl,
+  avatarAlt: optionalText(160),
+  resumeUrl: optionalHttpsUrl,
+  contactEmail: emailAddress,
+  contactFormEnabled: z.boolean().default(true),
+  /** Null → rendered as "{fullName} — {headline}". */
+  seoTitle: optionalText(70),
+  seoDescription: requiredText(160),
+  ogImageUrl: optionalHttpsUrl,
+  accent: z.enum(ACCENTS).default("indigo"),
+  sections: sectionsSchema.default(DEFAULT_SECTIONS),
+});
+
+export const siteSettingsSchema = siteSettingsShape.superRefine(
+  altRequiredWithImage("avatarUrl", "avatarAlt"),
+);
 
 export type SiteSettingsInput = z.input<typeof siteSettingsSchema>;
 export type SiteSettingsValues = z.output<typeof siteSettingsSchema>;
+
+/**
+ * Partial schemas for the admin forms. Each carries only its own columns (unknown keys are stripped),
+ * so a Profile or Settings action can never write session_version, resume_*, avatar_* or og_image_*.
+ * Avatar/resume/OG image arrive with the upload phase (SPEC §15 Phase 5).
+ */
+export const profileSchema = siteSettingsShape.pick({
+  fullName: true,
+  headline: true,
+  tagline: true,
+  location: true,
+  openToWork: true,
+  openToWorkText: true,
+  aboutMd: true,
+  contactEmail: true,
+});
+export type ProfileValues = z.output<typeof profileSchema>;
+
+export const seoSchema = siteSettingsShape.pick({
+  seoTitle: true,
+  seoDescription: true,
+});
+export type SeoValues = z.output<typeof seoSchema>;
+
+export const appearanceSchema = z.object({ accent: z.enum(ACCENTS) });
+export const contactFormSchema = z.object({ contactFormEnabled: z.boolean() });

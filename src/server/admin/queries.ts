@@ -1,10 +1,11 @@
 import "server-only";
-import { asc, desc } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "../db/client";
 import {
   certifications,
   education,
   experiences,
+  siteSettings,
   skillGroups,
   skills,
   socialLinks,
@@ -76,3 +77,32 @@ export async function listSkillGroups(): Promise<AdminSkillGroup[]> {
     skills: items.filter((s) => s.groupId === group.id),
   }));
 }
+
+/**
+ * The editable columns of the settings singleton. `session_version` is deliberately left out: it
+ * never needs to reach a client component.
+ */
+export async function getAdminSettings() {
+  const [row] = await db
+    .select({
+      fullName: siteSettings.fullName,
+      headline: siteSettings.headline,
+      tagline: siteSettings.tagline,
+      location: siteSettings.location,
+      openToWork: siteSettings.openToWork,
+      openToWorkText: siteSettings.openToWorkText,
+      aboutMd: siteSettings.aboutMd,
+      contactEmail: siteSettings.contactEmail,
+      contactFormEnabled: siteSettings.contactFormEnabled,
+      seoTitle: siteSettings.seoTitle,
+      seoDescription: siteSettings.seoDescription,
+      accent: siteSettings.accent,
+      sections: siteSettings.sections,
+    })
+    .from(siteSettings)
+    .where(eq(siteSettings.id, 1));
+  return row;
+}
+export type AdminSettings = NonNullable<
+  Awaited<ReturnType<typeof getAdminSettings>>
+>;
