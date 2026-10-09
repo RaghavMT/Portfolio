@@ -2,6 +2,32 @@
 
 _Updated at the end of every task. Newest phase on top._
 
+## Phase 2 — Public site · built and verified (2026-10-09); waiting on Raghav's content
+
+All §15 Phase 2 tasks ticked. Production deploy of `94a64a7` is green (GitHub deployment status `success`, seen by the agent). Production domain: `https://portfolio-pi-six-sk3rfqi4dy.vercel.app` (the sitemap there uses it via `VERCEL_PROJECT_PRODUCTION_URL`; `NEXT_PUBLIC_SITE_URL` is still unset).
+
+### Built
+- `src/server/queries/public.ts` (all reads `'use cache'` + `cacheTag('content')` + `cacheLife('max')`), `src/server/cache.ts` (`invalidateContent()`, unused until Phase 4).
+- Theme tokens, 8 accents, no-flash dark mode, toggle; public layout; hero + 7 sections rendered in `sections` order; `/projects` (tag filter), `/projects/[slug]`, `/resume`, 404/error; metadata, JSON-LD, sitemap, robots, OG image.
+- Decision Log D15–D22. New deps: `react-markdown`, `remark-gfm` (§6.1), `@axe-core/playwright` (dev, D16).
+
+### AC evidence
+- `pnpm lint`, `typecheck`, `format:check` exit 0. `pnpm test` → 11 files, 180 tests passed. `pnpm build` passes (one earlier run failed with `fetch failed` to Neon; DB was reachable on rerun and the build passed — builds depend on Neon being up).
+- `pnpm test:e2e` (test DB, chromium + Pixel 7) → 26 passed: visitor smoke, tag filter, theme toggle, 375 px above-the-fold and no horizontal scroll, axe on `/`, `/projects`, a project page in light and dark → 0 serious/critical.
+- Hide in DB → gone (test DB, temporary invalidation route, deleted and never committed): Education section hidden, only Experience item hidden (section disappears), project set to draft (gone from `/projects`), resume set (CTA + `/resume` 302), all restored. Invalidate round trip 81 ms (target ≤ 5 s). 11/11 checks passed.
+- Draft slug: not-found page + `noindex`, real 404 on repeat requests; the very first request is 200 (D19).
+- Lighthouse mobile on production: `/` perf 94, a11y 100, BP 100, SEO 100 (LCP 1.5 s, CLS 0). Project page: 96/100/100/100.
+- Screenshots reviewed at 375 px (light) and 1440 px (dark).
+
+### Not met / open
+- JS on `/` is 152 KB transferred vs the ≤ 100 KB target (D22, framework baseline). Revisit in Phase 8.
+- Keyboard-only walkthrough is covered only by axe + the skip link/focus ring; the full manual pass is Phase 8.
+- Placeholder content is still `TODO:` (§17 Q3). No images exist, so `next/image` `remotePatterns` for Blob is Phase 5.
+- First-request 200 for unknown slugs (D19) deviates from "returns 404"; say if you want a different trade-off.
+
+### Environment
+- Test database: `portfolio_test` inside the same Neon project; `DATABASE_URL_TEST` and `DATABASE_URL_TEST_UNPOOLED` are in `.env.local`. Re-seed with the override recipe in D21.
+
 ## Phase 1 — Database, schema, seed · done (2026-10-09)
 
 Vercel production deploy of `da9b922` confirmed green by Raghav (reported, not seen by the agent). Phase 2 is next.
