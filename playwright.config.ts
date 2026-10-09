@@ -1,4 +1,6 @@
 import { existsSync } from "node:fs";
+import bcrypt from "bcryptjs";
+import { E2E_PASSWORD } from "./tests/e2e/constants";
 import { defineConfig, devices } from "@playwright/test";
 
 // E2E runs against a production build (SPEC §16.2) wired to the TEST database, never prod data.
@@ -9,6 +11,10 @@ if (!testUrl && !process.env.CI) {
     "DATABASE_URL_TEST is not set. E2E must not run against the shared Neon database (SPEC §16.2).",
   );
 }
+
+const e2ePasswordHash = Buffer.from(bcrypt.hashSync(E2E_PASSWORD, 4)).toString(
+  "base64",
+);
 
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
@@ -36,6 +42,9 @@ export default defineConfig({
       DATABASE_URL: testUrl ?? "",
       DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_TEST_UNPOOLED ?? "",
       NEXT_PUBLIC_SITE_URL: baseURL,
+      SESSION_SECRET: "e2e-session-secret-e2e-session-secret-0123456789",
+      IP_HASH_SALT: "e2e-ip-salt",
+      ADMIN_PASSWORD_HASH: e2ePasswordHash,
     },
   },
 });

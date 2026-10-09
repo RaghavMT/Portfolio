@@ -2,6 +2,25 @@
 
 _Updated at the end of every task. Newest phase on top._
 
+## Phase 3 — Auth · built and verified locally (2026-10-09); NOT live until Vercel env vars are set
+
+### Blocked on Raghav
+- **Vercel env vars.** The auto-mode classifier refused the agent's write to Vercel's secret store, so production/preview have no `SESSION_SECRET`, `IP_HASH_SALT` or `ADMIN_PASSWORD_HASH`. Until they're added, `/admin/login` on Vercel shows "Login is unavailable". Locally they're in `.env.local` (hash of the password Raghav chose). Add them yourself with `pnpm.cmd dlx vercel@latest env add <NAME> production` (and `preview`, `development`), or ask the agent to retry once permitted. To make a fresh hash: `pnpm hash-password`.
+- Do not paste the real password into tests or docs (it is not in the repo; checked by grep).
+
+### Built
+- `src/server/auth/` (`session.ts`, `rate-limit.ts`, `login-attempts.ts`, `password.ts`, `require-admin.ts`), `src/proxy.ts`, `src/lib/{safe-next,ip-hash,logger}.ts`, `src/server/actions/auth.ts` (login/logout), `src/server/actions/admin/settings.ts` (`logoutAllDevices`), `/admin/login`, protected layout + sidebar + empty pages, §12.6 headers in `next.config.ts`, `scripts/hash-password.ts`.
+- New deps `jose`, `bcryptjs` (§6.1). Decision Log D23.
+
+### AC evidence
+- `pnpm lint`, `typecheck`, `format:check` exit 0. `pnpm test` → 17 files, 216 tests passed (session, rate-limit, safe-next, password, ip-hash, authorization sweep: every export in `src/server/actions/admin/**` rejects with no cookie). `pnpm build` passes (`ƒ Proxy` registered, `/admin/*` partially prerendered).
+- `pnpm test:e2e` (test DB) → 36 passed, 10 skipped (auth specs run on desktop only): logged-out `/admin/projects` → login with `next=`; wrong password → generic error; 5 wrong → locked even for the right password; login → requested page; cookie `HttpOnly`, `Secure`, `SameSite=Lax`, path `/`; off-site `next=` ignored; already-logged-in `/admin/login` → dashboard; bumping `session_version` logs out; logout; §12.6 headers + `no-store`/`noindex` on `/admin`; axe 0 serious/critical on the login page.
+
+### Not verified
+- `pnpm hash-password` needs an interactive terminal; it was not run by the agent.
+- The 15-minute lock expiry and the 30/hour global lock are covered by unit thresholds only, not waited out in E2E.
+- No manual look at the admin shell at 375/1440 px yet; Vercel deploy not checked.
+
 ## Phase 2 — Public site · built and verified (2026-10-09); waiting on Raghav's content
 
 All §15 Phase 2 tasks ticked. Production deploy of `94a64a7` is green (GitHub deployment status `success`, seen by the agent). Production domain: `https://portfolio-pi-six-sk3rfqi4dy.vercel.app` (the sitemap there uses it via `VERCEL_PROJECT_PRODUCTION_URL`; `NEXT_PUBLIC_SITE_URL` is still unset).

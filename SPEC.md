@@ -551,7 +551,7 @@ Name*, Email*, Company (optional), Subject (optional), Message* (10–5,000 char
 
 ### 12.1 Authentication & sessions (SEC-01)
 - Password is never stored in plain text anywhere (not in repo, not in DB, not in logs). Only a **bcrypt hash (cost 12)** is stored in env var `ADMIN_PASSWORD_HASH`, **base64-encoded** (bcrypt hashes contain `$`, which Next.js's env loader would otherwise expand and corrupt).
-- Password policy: ≥ 14 characters (passphrase recommended). `pnpm hash-password` script prompts for the password (hidden input) and prints the base64 hash.
+- Password policy: ≥ 8 characters (relaxed from 14 at Raghav's request, D23; a longer passphrase is still recommended). `pnpm hash-password` script prompts for the password (hidden input) and prints the base64 hash.
 - On successful login, issue a JWT signed with HS256 using `SESSION_SECRET` (≥ 32 random bytes), payload `{ sub: "admin", ver: <site_settings.session_version>, iat, exp }`, expiry **7 days**.
 - Cookie: name `admin_session`, `HttpOnly`, `Secure` (in production), `SameSite=Lax`, `Path=/`, no `Domain`.
 - "Log out of all devices" increments `site_settings.session_version` (no redeploy needed). Tokens whose `ver` differs from the current value are rejected. To avoid a DB read on every request, `proxy.ts` checks only signature + expiry; `requireAdmin()` (the real boundary) also checks `ver`.
@@ -735,9 +735,9 @@ Rules: complete phases **in order**. A phase is done only when all its acceptanc
 **AC:** All FR-PUB-01…08 satisfied with seed data; hiding a section or item directly in the DB (then invalidating) hides it on the site; draft project slug returns 404; Lighthouse mobile meets §2.3 on the preview URL; axe reports 0 serious/critical issues.
 
 ### Phase 3 — Auth
-- [ ] `hash-password` script; `session.ts` (sign/verify with `jose`), `require-admin.ts`, `rate-limit.ts`, `proxy.ts`.
-- [ ] `/admin/login`, logout, protected admin layout shell (sidebar, empty pages).
-- [ ] Security headers (§12.6).
+- [x] `hash-password` script; `session.ts` (sign/verify with `jose`), `require-admin.ts`, `rate-limit.ts`, `proxy.ts`.
+- [x] `/admin/login`, logout, protected admin layout shell (sidebar, empty pages).
+- [x] Security headers (§12.6).
 
 **AC:** unauthenticated `/admin/*` → redirect to login; wrong password ×5 → locked 15 min; correct password → dashboard; cookie flags verified (HttpOnly, Secure in prod, SameSite=Lax); bumping session version logs out existing sessions; calling an admin Server Action without a cookie returns unauthorized (automated test).
 
@@ -850,6 +850,7 @@ Tests must not hit the production DB or Blob store. Use a separate Neon branch/d
 | D20 | 2026‑10‑09 | *(assumed)* Social links render as text-labelled pills with a generic Lucide icon, because lucide-react 1.x has no brand icons (GitHub/LinkedIn/X). Brand SVGs would need hand-drawn paths. | Labels are clearer for recruiters and fully accessible | Inline brand SVGs; a new icon package (needs approval) |
 | D21 | 2026‑10‑09 | *(assumed)* Test database = a second database `portfolio_test` inside the same Neon project (`CREATE DATABASE`, then `db:migrate` + `db:seed` with `DATABASE_URL`/`DATABASE_URL_UNPOOLED` overridden). `.env.local` gets `DATABASE_URL_TEST` and `DATABASE_URL_TEST_UNPOOLED`. `playwright.config.ts` refuses to run without `DATABASE_URL_TEST` and starts `pnpm build && pnpm start -p 3100` with the test URLs. Shared project quotas apply (Neon Free: 1 GB per project). | §16.2: tests must not touch the production database; this needs no new Neon project or paid branching | Neon branch (manual console step); toggling rows in the shared DB |
 | D22 | 2026‑10‑09 | *(assumed)* JS budget (§13.1, ≤ 100 KB gz on `/`) is **not met** at 152 KB transferred, measured by Lighthouse on production: the two largest chunks (72 + 46 KB, 118 KB) are the React DOM and Next client runtime; the other 7 scripts (34 KB) are the bundler runtime, route chunks and the theme toggle. Lighthouse mobile performance is still 94–96, so it is accepted as the framework floor. Revisit in Phase 8. | No public-page Client Component is heavy; the baseline cannot be reduced without leaving Next | Dropping `next/link`/`next/image` (worse UX, no real saving) |
+| D23 | 2026‑10‑09 | Auth (Phase 3), mostly *(assumed)*: the admin password minimum is **8** characters instead of 14 (Raghav asked for a simple password; supersedes the §12.1 policy). Lockout is counted from `login_attempts` rows (failures only; locked attempts are not recorded, so a lock expires on its own); the global lock counts failures from any IP. The client IP is the first `x-forwarded-for` hop. `login`/`logout` live in `src/server/actions/auth.ts` (public by necessity), so `src/server/actions/admin/**` holds only actions that call `requireAdmin()`; a unit test sweeps that folder. Vitest aliases `server-only` to an empty stub. E2E uses a throwaway password and its own secrets, never the real ones. The lockout email waits for Resend (Phase 6). | Simplest approach that meets §12; keeps the authorization sweep meaningful | Counting successes too; a separate lock table; Auth.js |
 
 New decisions are appended; old ones are never edited — supersede them with a new row.
 
