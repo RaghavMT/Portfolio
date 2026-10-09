@@ -573,7 +573,7 @@ Name*, Email*, Company (optional), Subject (optional), Message* (10–5,000 char
 - All inputs validated server-side with Zod (client validation is UX only). Unknown fields are stripped.
 - All SQL via Drizzle query builder / parameterized `sql` template. **No string-concatenated SQL.**
 - Markdown rendered with `react-markdown` without raw HTML; links restricted to `https:`, `http:`, `mailto:`; `javascript:` and `data:` URLs dropped.
-- `dangerouslySetInnerHTML` is forbidden except for the theme no-flash inline script (static string, no user data).
+- `dangerouslySetInnerHTML` is forbidden except for (1) the theme no-flash inline script (static string, no user data) and (2) JSON-LD structured data (§13.3), which must go through `serializeJsonLd()` in `src/lib/json-ld.ts` (escapes `<` so `</script>` cannot break out). See D15.
 - Redirect targets (`next=`) must start with `/admin` and not `//`.
 
 ### 12.5 Secrets (SEC-05)
@@ -726,11 +726,11 @@ Rules: complete phases **in order**. A phase is done only when all its acceptanc
 **AC:** fresh DB → `pnpm db:migrate && pnpm db:seed` produces exactly 1 `site_settings` row + seed content; running seed again changes nothing; Zod tests pass.
 
 ### Phase 2 — Public site (read-only, from DB)
-- [ ] `src/server/queries/public.ts` (published/visible only, cached + tagged).
-- [ ] Layout, theme tokens, light/dark + toggle, accent presets (§8.9).
-- [ ] Hero, About, Projects (home), Experience, Skills, Education, Certifications, Contact (static email + links for now), Footer — rendered in `sections` order.
-- [ ] `/projects` with tag filter, `/projects/[slug]`, `/resume`, 404/error pages.
-- [ ] Metadata, JSON-LD, sitemap, robots, OG image.
+- [x] `src/server/queries/public.ts` (published/visible only, cached + tagged).
+- [x] Layout, theme tokens, light/dark + toggle, accent presets (§8.9).
+- [x] Hero, About, Projects (home), Experience, Skills, Education, Certifications, Contact (static email + links for now), Footer — rendered in `sections` order.
+- [x] `/projects` with tag filter, `/projects/[slug]`, `/resume`, 404/error pages.
+- [x] Metadata, JSON-LD, sitemap, robots, OG image.
 
 **AC:** All FR-PUB-01…08 satisfied with seed data; hiding a section or item directly in the DB (then invalidating) hides it on the site; draft project slug returns 404; Lighthouse mobile meets §2.3 on the preview URL; axe reports 0 serious/critical issues.
 
@@ -842,6 +842,12 @@ Tests must not hit the production DB or Blob store. Use a separate Neon branch/d
 | D12 | 2026‑10‑09 | *(assumed)* `src/server/db/schema.ts` does **not** import `server-only` (the rest of `src/server` does; `client.ts` does). The schema file uses relative imports instead of the `@/` alias. | drizzle-kit and `scripts/seed.ts` load the schema outside Next, where `server-only` throws. The file holds table definitions only, with no secrets or queries | Putting `server-only` in the schema (breaks drizzle-kit); duplicating enums by hand (drift) |
 | D13 | 2026‑10‑09 | *(assumed)* Scripts in `scripts/` run on Node 24's built-in TypeScript support plus a 20-line resolver hook (`scripts/resolve-ts.mjs`) for the `@/` alias and extensionless imports. No `tsx`/`dotenv` dependency; `.env.local` is loaded with `process.loadEnvFile`. `pnpm build` runs `scripts/migrate.ts` first, which only migrates when `VERCEL_ENV=production` (§7.4). `pnpm db:migrate` passes `--force`. | §6.2: no new dependency for something small; Node is pinned to 24.x (D11) | `tsx` (new dependency), compiling scripts to JS |
 | D14 | 2026‑10‑09 | *(assumed)* The seed inserts everything with one `db.batch([...])` (a single transaction over neon-http, which has no interactive transactions). It runs only when `site_settings` is empty. Seed content is validated with the same Zod schemas as the admin forms. Also: `pnpm-workspace.yaml` sets `esbuild: false` under `allowBuilds` (drizzle-kit's esbuild works without its install script). Phase 1 ran `db:migrate` + `db:seed` against the single Neon DB that Development/Preview/Production share, which was empty at the time. | All-or-nothing seeding; invalid seed content fails before any write | Per-table inserts (partial seeds on failure) |
+| D15 | 2026‑10‑09 | JSON-LD may use `dangerouslySetInnerHTML`, only via `serializeJsonLd()` (escapes `<`, U+2028/2029). Added as a second exception in §12.4. Approved by Raghav. | §13.3 requires JSON-LD, which can only be injected as raw script text; the escaping is unit-tested with a `</script>` payload | Skipping JSON-LD (§13.3 unmet) |
+| D16 | 2026‑10‑09 | Add `@axe-core/playwright` as a **dev** dependency for the "0 serious/critical axe issues" AC. Approved by Raghav. | Automated, repeatable a11y check; never shipped to the browser | Manual axe DevTools run only |
+| D17 | 2026‑10‑09 | *(assumed)* Theme tokens: the spec names (`--bg`, `--fg`, `--muted`, `--border`, `--card`, `--accent`, `--accent-fg`) are the source of truth and shadcn's Tailwind colours are mapped onto them in `@theme inline`: `muted`/`accent` utilities = neutral surface, `primary`/`brand` = accent colour. Only Geist Sans is loaded (§13.1: one font); Geist Mono dropped. Accent hex values are duplicated in `src/lib/accent-colors.ts` for the OG image; a test keeps both in sync, and another test checks AA contrast for every preset in light and dark. | shadcn's `accent` means a hover grey, which would clash with the spec's brand-colour `accent` | Renaming spec tokens; a runtime colour picker (D7) |
+| D18 | 2026‑10‑09 | *(assumed)* Absolute site URL = `NEXT_PUBLIC_SITE_URL`, else `https://$VERCEL_PROJECT_PRODUCTION_URL`, else `http://localhost:3000` (`src/lib/site-url.ts`). Non-https values are ignored. | The permanent domain is not decided yet (§17 Q6); canonical, sitemap and OG URLs stay correct on `*.vercel.app` without extra setup | Requiring the env var before first deploy |
+| D19 | 2026‑10‑09 | *(assumed)* Unknown or draft `/projects/[slug]`: Cache Components streams the static shell first, so the **first** request for a never-seen slug returns HTTP 200 with the not-found UI and an injected `noindex` meta; repeat requests return a cached real 404. Accepted rather than using `dynamicParams = false` (which would hide newly published projects until a redeploy, breaking G4). Drafts never leak content either way. | Next.js can't change the status after the shell is sent (streaming guide). `noindex` keeps search engines away | `dynamicParams = false`; DB lookup in `proxy.ts` (Phase 3 scope, security-sensitive) |
+| D20 | 2026‑10‑09 | *(assumed)* Social links render as text-labelled pills with a generic Lucide icon, because lucide-react 1.x has no brand icons (GitHub/LinkedIn/X). Brand SVGs would need hand-drawn paths. | Labels are clearer for recruiters and fully accessible | Inline brand SVGs; a new icon package (needs approval) |
 
 New decisions are appended; old ones are never edited — supersede them with a new row.
 

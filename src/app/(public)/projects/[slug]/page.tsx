@@ -1,10 +1,14 @@
 import { ArrowLeft, Code, ExternalLink, FileText } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/public/json-ld";
 import { TagList } from "@/components/public/section";
 import { formatMonth } from "@/lib/format";
+import { siteUrl } from "@/lib/site-url";
 import { Markdown } from "@/lib/markdown";
+import { pageMetadata } from "@/lib/metadata";
 import { getProjectBySlug, getPublishedSlugs } from "@/server/queries/public";
 
 export async function generateStaticParams() {
@@ -13,6 +17,22 @@ export async function generateStaticParams() {
   return rows.length > 0
     ? rows.map(({ slug }) => ({ slug }))
     : [{ slug: "not-found" }];
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/projects/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const data = await getProjectBySlug(slug);
+  if (!data) return {};
+  const { project } = data;
+  return pageMetadata({
+    title: project.title,
+    description: project.summary,
+    path: `/projects/${project.slug}`,
+    image: project.coverImageUrl,
+    type: "article",
+  });
 }
 
 const linkClass =
@@ -34,6 +54,17 @@ export default async function ProjectPage({
 
   return (
     <article className="mx-auto w-full max-w-3xl px-4 py-12 sm:py-16">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "CreativeWork",
+          name: project.title,
+          description: project.summary,
+          url: `${siteUrl()}/projects/${project.slug}`,
+          keywords: project.tech.join(", "),
+          ...(project.coverImageUrl && { image: project.coverImageUrl }),
+        }}
+      />
       <Link
         href="/projects"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"

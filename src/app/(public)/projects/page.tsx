@@ -1,7 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ProjectGrid } from "@/components/public/project-grid";
-import { getPublishedProjects } from "@/server/queries/public";
+import { pageMetadata } from "@/lib/metadata";
+import { getPublishedProjects, getSettings } from "@/server/queries/public";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const name = settings?.fullName ?? "Portfolio";
+  return pageMetadata({
+    title: `Projects — ${name}`,
+    description: `Projects built by ${name}: what each one does, how it was built and what came out of it.`,
+    path: "/projects",
+  });
+}
 
 /** Tag chips are plain links (?tag=react), so filtering works without JS and is shareable. */
 async function Filtered({

@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { AboutSection } from "@/components/public/about-section";
+import { JsonLd } from "@/components/public/json-ld";
+import { pageMetadata } from "@/lib/metadata";
+import { siteUrl } from "@/lib/site-url";
 import { CertificationsSection } from "@/components/public/certifications-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { EducationSection } from "@/components/public/education-section";
@@ -16,6 +20,17 @@ import {
   getSkillGroups,
   getSocialLinks,
 } from "@/server/queries/public";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  if (!settings) return {};
+  return pageMetadata({
+    title: settings.seoTitle ?? `${settings.fullName} — ${settings.headline}`,
+    description: settings.seoDescription,
+    path: "/",
+    image: settings.ogImageUrl,
+  });
+}
 
 export default async function HomePage() {
   const [
@@ -49,6 +64,19 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Person",
+          name: settings.fullName,
+          jobTitle: settings.headline,
+          url: siteUrl(),
+          email: `mailto:${settings.contactEmail}`,
+          sameAs: socials
+            .filter((s) => s.url.startsWith("https://"))
+            .map((s) => s.url),
+        }}
+      />
       <Hero settings={settings} socials={socials} />
       {sections.map(({ key }) => {
         switch (key) {
