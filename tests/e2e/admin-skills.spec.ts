@@ -56,6 +56,8 @@ test("group and chip lifecycle, visible on the public site ≤ 5 s", async ({
   page,
   browser,
 }) => {
+  // ~25 round trips to a remote database: the default 30 s is too tight (as for the project lifecycle, D29).
+  test.setTimeout(90_000);
   await loginAsAdmin(page);
   await page.goto("/admin/skills");
 
@@ -104,6 +106,15 @@ test("group and chip lifecycle, visible on the public site ≤ 5 s", async ({
 
   // remove a chip
   await page.getByRole("button", { name: `Remove ${SKILL_B}` }).click();
+  await expect
+    .poll(
+      async () =>
+        (
+          await sql`select count(*)::int as n from skills where name = ${SKILL_B}`
+        )[0].n,
+      { timeout: 15_000 },
+    )
+    .toBe(0);
   await expectPublic(browser, SKILL_B, false);
 
   // rename the group
@@ -116,10 +127,16 @@ test("group and chip lifecycle, visible on the public site ≤ 5 s", async ({
   // hide, then show again
   const toggle = (state: "Visible" | "Hidden") =>
     page.getByRole("button", { name: new RegExp(`^${RENAMED}: ${state}`) });
+  // The toggle updates optimistically, so wait for the save itself before timing the 5 s public window.
+  const savedVisible = async () =>
+    (await sql`select visible from skill_groups where name = ${RENAMED}`)[0]
+      ?.visible;
   await toggle("Visible").click();
   await expect(toggle("Hidden")).toBeVisible();
+  await expect.poll(savedVisible, { timeout: 15_000 }).toBe(false);
   await expectPublic(browser, SKILL_A, false);
   await toggle("Hidden").click();
+  await expect.poll(savedVisible, { timeout: 15_000 }).toBe(true);
   await expectPublic(browser, SKILL_A, true);
 
   // reorder groups: add a second group and move it up

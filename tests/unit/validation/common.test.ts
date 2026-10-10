@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  blobUrl,
   emailAddress,
   httpsUrl,
   mailtoUrl,
   markdown,
   monthDate,
+  optionalBlobUrl,
   optionalHttpsUrl,
   optionalMonthDate,
   optionalText,
@@ -175,5 +177,31 @@ describe("textList", () => {
   it("enforces count and length limits", () => {
     expect(schema.safeParse(["a", "b", "c"]).success).toBe(false);
     expect(schema.safeParse(["abcdef"]).success).toBe(false);
+  });
+});
+
+describe("blobUrl", () => {
+  const good = "https://abc123.public.blob.vercel-storage.com/images/a-x.png";
+
+  it("accepts a Vercel Blob public URL", () => {
+    expect(blobUrl.parse(` ${good} `)).toBe(good);
+  });
+
+  it.each([
+    "https://example.com/a.png",
+    "http://abc123.public.blob.vercel-storage.com/a.png",
+    "https://public.blob.vercel-storage.com.evil.com/a.png",
+    "data:image/png;base64,AAAA",
+  ])("rejects %s", (url) => {
+    expect(blobUrl.safeParse(url).success).toBe(false);
+  });
+
+  it("optionalBlobUrl turns blank into null", () => {
+    expect(optionalBlobUrl.parse("")).toBeNull();
+    expect(optionalBlobUrl.parse(undefined)).toBeNull();
+    expect(optionalBlobUrl.parse(good)).toBe(good);
+    expect(optionalBlobUrl.safeParse("https://example.com/a.png").success).toBe(
+      false,
+    );
   });
 });

@@ -128,6 +128,8 @@ for (const e of entities) {
       page,
       browser,
     }) => {
+      // ~25 round trips to a remote database: the default 30 s is too tight (as for the project lifecycle, D29).
+      test.setTimeout(90_000);
       await loginAsAdmin(page);
       await page.goto(e.path);
 

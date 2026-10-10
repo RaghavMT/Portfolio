@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { blobHostFromToken } from "./src/lib/upload-rules";
 
 // SPEC §12.6. A full nonce-based script-src CSP is a Phase 9 item.
 const securityHeaders = [
@@ -19,9 +20,20 @@ const securityHeaders = [
   },
 ];
 
+// SPEC §10.3: next/image may only load from this project's own Blob store (derived from its token).
+const blobHost = blobHostFromToken(process.env.BLOB_READ_WRITE_TOKEN);
+
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  images: {
+    remotePatterns: blobHost
+      ? [{ protocol: "https", hostname: blobHost, pathname: "/**" }]
+      : [],
+    // A short list keeps Hobby-plan image optimization usage low (SPEC §10.3).
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [96, 256, 384],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

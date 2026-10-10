@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, ExternalLink, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -188,22 +189,36 @@ export function ProjectsManager({ projects }: { projects: AdminProjectRow[] }) {
           onReorder={reorderProjects}
           reorderable={reorderable}
           renderItem={(p) => (
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/admin/projects/${p.id}`}
-                  className="truncate font-medium hover:underline"
-                >
-                  {p.title}
-                </Link>
-                <StatusPill status={p.status} />
+            <div className="flex items-center gap-3">
+              <div className="relative hidden aspect-video w-16 shrink-0 overflow-hidden rounded bg-muted sm:block">
+                {p.coverImageUrl ? (
+                  <Image
+                    src={p.coverImageUrl}
+                    alt={p.coverImageAlt ?? ""}
+                    fill
+                    unoptimized
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                ) : null}
               </div>
-              <p className="truncate text-sm text-muted-foreground">
-                {p.summary}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Updated {p.updatedAt.toISOString().slice(0, 10)}
-              </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/admin/projects/${p.id}`}
+                    className="truncate font-medium hover:underline"
+                  >
+                    {p.title}
+                  </Link>
+                  <StatusPill status={p.status} />
+                </div>
+                <p className="truncate text-sm text-muted-foreground">
+                  {p.summary}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Updated {p.updatedAt.toISOString().slice(0, 10)}
+                </p>
+              </div>
             </div>
           )}
           renderActions={(p) => (

@@ -7,6 +7,7 @@ import { profileSchema } from "@/lib/validation/site-settings";
 import { updateProfile } from "@/server/actions/admin/profile";
 import type { AdminSettings } from "@/server/admin/queries";
 import { Field, useEntityForm } from "./entity-form";
+import { ImageField } from "./image-field";
 import { SwitchRow } from "./form-parts";
 import { MarkdownField } from "./markdown-field";
 
@@ -23,6 +24,8 @@ export function ProfileForm({ settings }: { settings: AdminSettings }) {
       openToWork: settings.openToWork,
       openToWorkText: text(settings.openToWorkText),
       aboutMd: settings.aboutMd,
+      avatarUrl: text(settings.avatarUrl),
+      avatarAlt: text(settings.avatarAlt),
       contactEmail: settings.contactEmail,
     },
     submit: updateProfile,
@@ -31,6 +34,8 @@ export function ProfileForm({ settings }: { settings: AdminSettings }) {
     register,
     control,
     watch,
+    setValue,
+    clearErrors,
     formState: { errors },
   } = form;
   const err = (name: keyof typeof errors) =>
@@ -174,9 +179,22 @@ export function ProfileForm({ settings }: { settings: AdminSettings }) {
         />
       </Field>
 
-      <p className="text-sm text-muted-foreground">
-        Photo and résumé uploads arrive in a later phase.
-      </p>
+      <ImageField
+        id="pf-avatar"
+        label="Photo"
+        kind="image"
+        aspect="aspect-square"
+        url={(watch("avatarUrl") as string) || null}
+        alt={(watch("avatarAlt") as string) || null}
+        help="A clear, friendly head-and-shoulders photo, shown next to your name. Optional."
+        urlError={err("avatarUrl")}
+        altError={err("avatarAlt")}
+        onChange={({ url, alt }) => {
+          setValue("avatarUrl", url ?? "", { shouldDirty: true });
+          setValue("avatarAlt", alt ?? "", { shouldDirty: true });
+          clearErrors(["avatarUrl", "avatarAlt"]);
+        }}
+      />
 
       <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Saving…" : "Save profile"}

@@ -3,6 +3,7 @@ import {
   altRequiredWithImage,
   emailAddress,
   markdown,
+  optionalBlobUrl,
   optionalHttpsUrl,
   optionalText,
   requiredText,
@@ -90,25 +91,32 @@ export type SiteSettingsValues = z.output<typeof siteSettingsSchema>;
 
 /**
  * Partial schemas for the admin forms. Each carries only its own columns (unknown keys are stripped),
- * so a Profile or Settings action can never write session_version, resume_*, avatar_* or og_image_*.
- * Avatar/resume/OG image arrive with the upload phase (SPEC §15 Phase 5).
+ * so a Profile or Settings action can never write session_version or resume_*. Image URLs must be
+ * files in our Blob store (the action also pins the exact store host, SPEC §10.1).
  */
-export const profileSchema = siteSettingsShape.pick({
-  fullName: true,
-  headline: true,
-  tagline: true,
-  location: true,
-  openToWork: true,
-  openToWorkText: true,
-  aboutMd: true,
-  contactEmail: true,
-});
+export const profileSchema = siteSettingsShape
+  .pick({
+    fullName: true,
+    headline: true,
+    tagline: true,
+    location: true,
+    openToWork: true,
+    openToWorkText: true,
+    aboutMd: true,
+    contactEmail: true,
+    avatarAlt: true,
+  })
+  .extend({ avatarUrl: optionalBlobUrl })
+  .superRefine(altRequiredWithImage("avatarUrl", "avatarAlt"));
 export type ProfileValues = z.output<typeof profileSchema>;
 
-export const seoSchema = siteSettingsShape.pick({
-  seoTitle: true,
-  seoDescription: true,
-});
+export const seoSchema = siteSettingsShape
+  .pick({ seoTitle: true, seoDescription: true })
+  .extend({ ogImageUrl: optionalBlobUrl });
+
+/** The résumé PDF only; `null` removes it. Saved on its own so a profile save can never touch it. */
+export const resumeSchema = z.object({ resumeUrl: optionalBlobUrl });
+export type ResumeValues = z.output<typeof resumeSchema>;
 export type SeoValues = z.output<typeof seoSchema>;
 
 export const appearanceSchema = z.object({ accent: z.enum(ACCENTS) });

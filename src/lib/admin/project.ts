@@ -2,10 +2,10 @@ import { isValidSlug, slugify, SLUG_MAX_LENGTH } from "../slug";
 import type { ProjectStatus } from "../validation/project";
 
 /**
- * Cover image + alt text are required to publish (SPEC §9.5). Uploads don't exist before Phase 5, so
- * the rule is off until then. Phase 5 flips this to `true` (a unit test pins the current value).
+ * Cover image + alt text are required to publish (SPEC §9.5). Off in Phase 4 (no uploads yet, D27);
+ * on since Phase 5. A unit test pins the value.
  */
-export const REQUIRE_COVER_ON_PUBLISH = false;
+export const REQUIRE_COVER_ON_PUBLISH = true;
 
 export type PublishProblem = {
   field: "summary" | "tech" | "coverImageUrl" | "coverImageAlt";

@@ -13,6 +13,7 @@ import {
   publishProblems,
   type PublishProblem,
 } from "@/lib/admin/project";
+import { unusedFiles } from "@/lib/upload-rules";
 import type {
   ProjectFormValues,
   ProjectStatus,
@@ -20,12 +21,14 @@ import type {
 import { applyOrder } from "./crud";
 import { runMutation } from "./run";
 import { db } from "../db/client";
-import { projects, type Project } from "../db/schema";
+import { projectImages, projects, type Project } from "../db/schema";
+import { assertOwnBlobUrls, deleteBlobs } from "../blob";
 
 /**
  * Project writes (SPEC §9.5). Action files call these AFTER `requireAdmin()` and Zod validation.
- * Gallery rows (`project_images`) go with a deleted project through the DB cascade; deleting their
- * blobs is Phase 5 (D27).
+ * Cover and gallery are saved with the form (SPEC §10.1): their URLs are re-checked against this
+ * store, the rows are replaced in one atomic batch, and files no longer used are deleted AFTER the
+ * save succeeded (§10.4). Deleting a project removes its gallery rows (DB cascade) and its blobs.
  */
 
 const idSchema = z.uuid();
@@ -37,6 +40,25 @@ export const PROJECT_CONSTRAINTS = {
     message: "Another project already uses that slug.",
   },
 };
+
+/** Gallery rows for a project, in the submitted order. */
+const galleryRows = (
+  projectId: string,
+  gallery: ProjectFormValues["gallery"],
+) =>
+  gallery.map((image, index) => ({
+    projectId,
+    url: image.url,
+    alt: image.alt,
+    caption: image.caption,
+    sortOrder: index,
+  }));
+
+/** Every Blob file a project currently uses. */
+const filesOf = (
+  cover: string | null | undefined,
+  gallery: readonly { url: string }[],
+) => [cover, ...gallery.map((g) => g.url)];
 
 function publishFailure(problems: PublishProblem[]) {
   const fieldErrors: FieldErrors = {};
@@ -55,6 +77,11 @@ export function createProjectRow(
   return runMutation(
     action,
     async () => {
+      try {
+        assertOwnBlobUrls(filesOf(values.coverImageUrl, values.gallery));
+      } catch {
+        return failMessage("One of the images isn't valid. Upload it again.");
+      }
       if (values.status === "published") {
         const problems = publishProblems(values);
         if (problems.length) return publishFailure(problems);
@@ -64,15 +91,25 @@ export function createProjectRow(
           next: sql<number>`coalesce(max(${projects.sortOrder}), -1) + 1`,
         })
         .from(projects);
-      const [row] = await db
+      const { gallery, ...fields } = values;
+      // The id is chosen here so the project and its gallery go in as one atomic batch.
+      const id = crypto.randomUUID();
+      const insertProject = db
         .insert(projects)
         .values({
-          ...values,
+          ...fields,
+          id,
           featured: featuredFor(values.status, values.featured),
           publishedAt: nextPublishedAt(null, values.status, new Date()),
           sortOrder: next,
         })
         .returning();
+      const [[row]] = gallery.length
+        ? await db.batch([
+            insertProject,
+            db.insert(projectImages).values(galleryRows(id, gallery)),
+          ])
+        : await db.batch([insertProject]);
       return ok(row);
     },
     PROJECT_CONSTRAINTS,
@@ -89,23 +126,30 @@ export function updateProjectRow(
   return runMutation(
     action,
     async () => {
+      try {
+        assertOwnBlobUrls(filesOf(values.coverImageUrl, values.gallery));
+      } catch {
+        return failMessage("One of the images isn't valid. Upload it again.");
+      }
       const [existing] = await db
         .select()
         .from(projects)
         .where(eq(projects.id, parsedId.data));
       if (!existing) return notFound();
       if (values.status === "published") {
-        const problems = publishProblems({
-          ...values,
-          coverImageUrl: existing.coverImageUrl,
-          coverImageAlt: existing.coverImageAlt,
-        });
+        const problems = publishProblems(values);
         if (problems.length) return publishFailure(problems);
       }
-      const [row] = await db
+      const oldGallery = await db
+        .select({ url: projectImages.url })
+        .from(projectImages)
+        .where(eq(projectImages.projectId, existing.id));
+
+      const { gallery, ...fields } = values;
+      const updateProject = db
         .update(projects)
         .set({
-          ...values,
+          ...fields,
           featured: featuredFor(values.status, values.featured),
           publishedAt: nextPublishedAt(
             existing.publishedAt,
@@ -115,6 +159,24 @@ export function updateProjectRow(
         })
         .where(eq(projects.id, existing.id))
         .returning();
+      const clearGallery = db
+        .delete(projectImages)
+        .where(eq(projectImages.projectId, existing.id));
+      const [[row]] = gallery.length
+        ? await db.batch([
+            updateProject,
+            clearGallery,
+            db.insert(projectImages).values(galleryRows(existing.id, gallery)),
+          ])
+        : await db.batch([updateProject, clearGallery]);
+
+      // Files the project no longer uses go only after the save succeeded (SPEC §10.4).
+      await deleteBlobs(
+        unusedFiles(
+          filesOf(existing.coverImageUrl, oldGallery),
+          filesOf(values.coverImageUrl, gallery),
+        ),
+      );
       return ok(row);
     },
     PROJECT_CONSTRAINTS,
@@ -266,11 +328,22 @@ export function deleteProjectRow(
   const parsedId = idSchema.safeParse(id);
   if (!parsedId.success) return Promise.resolve(notFound());
   return runMutation(action, async () => {
+    // Read the files first: the cascade removes the gallery rows with the project.
+    const [project] = await db
+      .select({ cover: projects.coverImageUrl })
+      .from(projects)
+      .where(eq(projects.id, parsedId.data));
+    const gallery = await db
+      .select({ url: projectImages.url })
+      .from(projectImages)
+      .where(eq(projectImages.projectId, parsedId.data));
     const rows = await db
       .delete(projects)
       .where(eq(projects.id, parsedId.data))
       .returning({ id: projects.id });
-    return rows.length ? ok(undefined) : notFound();
+    if (!rows.length) return notFound();
+    await deleteBlobs(filesOf(project?.cover, gallery));
+    return ok(undefined);
   });
 }
 

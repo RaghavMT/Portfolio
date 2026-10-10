@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isBlobUrl } from "../upload-rules";
 
 /**
  * Field building blocks shared by every entity schema (SPEC §7.1).
@@ -49,6 +50,13 @@ export const httpsUrl = z
   .refine((v) => hasProtocol(v, "https:"), "Use a full https:// link");
 
 export const optionalHttpsUrl = optional(httpsUrl);
+
+/** A file in the project's Vercel Blob store (SPEC §10.1 step 5). The server also pins the exact store host. */
+export const blobUrl = httpsUrl.refine(
+  (v) => isBlobUrl(v),
+  "Upload the file again",
+);
+export const optionalBlobUrl = optional(blobUrl);
 
 export const emailAddress = z
   .string()

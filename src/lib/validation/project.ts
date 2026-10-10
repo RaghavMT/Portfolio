@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { galleryImageSchema, MAX_PROJECT_IMAGES } from "./project-image";
 import { isValidSlug, RESERVED_SLUGS } from "../slug";
 import {
   altRequiredWithImage,
   endNotBeforeStart,
   markdown,
+  optionalBlobUrl,
   optionalHttpsUrl,
   optionalMonthDate,
   optionalText,
@@ -50,12 +52,22 @@ export const projectSchema = projectShape.superRefine((project, ctx) => {
 });
 
 /**
- * What the admin project form submits: everything except the cover image, which is managed by the
- * upload flow (Phase 5). Omitting it means saving the form can never clear an existing cover.
+ * What the admin project form submits (SPEC §9.5): the project fields, the cover image (a file in our
+ * Blob store, alt text required) and the gallery in display order. The save is the source of truth for
+ * uploads (§10.1), so the form always sends the cover and gallery it is showing.
  */
 export const projectFormSchema = projectShape
-  .omit({ coverImageUrl: true, coverImageAlt: true })
-  .superRefine(endNotBeforeStart("startedOn", "endedOn"));
+  .extend({
+    coverImageUrl: optionalBlobUrl,
+    gallery: z
+      .array(galleryImageSchema)
+      .max(MAX_PROJECT_IMAGES, `At most ${MAX_PROJECT_IMAGES} images`)
+      .default([]),
+  })
+  .superRefine((project, ctx) => {
+    altRequiredWithImage("coverImageUrl", "coverImageAlt")(project, ctx);
+    endNotBeforeStart("startedOn", "endedOn")(project, ctx);
+  });
 
 export type ProjectValues = z.output<typeof projectSchema>;
 export type ProjectFormValues = z.output<typeof projectFormSchema>;

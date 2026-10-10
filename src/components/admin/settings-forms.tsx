@@ -22,6 +22,7 @@ import type { AdminSettings } from "@/server/admin/queries";
 import { ConfirmDialog } from "./confirm-dialog";
 import { Field, useEntityForm } from "./entity-form";
 import { SwitchRow } from "./form-parts";
+import { ImageField } from "./image-field";
 
 const ACCENT_LABELS: Record<Accent, string> = {
   indigo: "Indigo",
@@ -115,14 +116,21 @@ export function SeoForm({ settings }: { settings: AdminSettings }) {
     defaultValues: {
       seoTitle: settings.seoTitle ?? "",
       seoDescription: settings.seoDescription,
+      ogImageUrl: settings.ogImageUrl ?? "",
     },
     submit: updateSeo,
   });
   const {
     register,
     watch,
+    setValue,
+    clearErrors,
     formState: { errors },
   } = form;
+  const ogImage = (watch("ogImageUrl") as string) || null;
+  const shownTitle =
+    String(watch("seoTitle") ?? "").trim() ||
+    `${settings.fullName} — ${settings.headline}`;
 
   return (
     <form onSubmit={onSubmit} className="space-y-5" noValidate>
@@ -158,6 +166,43 @@ export function SeoForm({ settings }: { settings: AdminSettings }) {
           {...register("seoDescription")}
         />
       </Field>
+      <ImageField
+        id="seo-og"
+        label="Share image (optional)"
+        kind="og"
+        withAlt={false}
+        aspect="aspect-[1200/630]"
+        url={ogImage}
+        alt={null}
+        help="Shown when your link is shared on LinkedIn, Slack or WhatsApp. PNG or JPG, 1200×630 px, up to 2 MB. Leave empty to use the generated card."
+        urlError={errors.ogImageUrl?.message as string | undefined}
+        onChange={({ url }) => {
+          setValue("ogImageUrl", url ?? "", { shouldDirty: true });
+          clearErrors("ogImageUrl");
+        }}
+      />
+      <div
+        className="max-w-md overflow-hidden rounded-lg border"
+        aria-label="How a shared link will look"
+        role="group"
+      >
+        <div className="relative aspect-[1200/630] bg-muted">
+          {ogImage ? (
+            // eslint-disable-next-line @next/next/no-img-element -- admin preview of the user's own upload
+            <img src={ogImage} alt="" className="size-full object-cover" />
+          ) : (
+            <p className="flex size-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+              Your generated share card is used.
+            </p>
+          )}
+        </div>
+        <div className="space-y-0.5 p-3">
+          <p className="truncate text-sm font-medium">{shownTitle}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground">
+            {String(watch("seoDescription") ?? "")}
+          </p>
+        </div>
+      </div>
       <Button type="submit" size="lg" disabled={pending}>
         {pending ? "Saving…" : "Save SEO"}
       </Button>

@@ -29,12 +29,12 @@ export async function updateAppearance(input: unknown) {
   return updateSiteSettings("updateAppearance", parsed.data);
 }
 
-/** SEO title + description; the OG image arrives with uploads (Phase 5). */
+/** SEO title, description and the optional share-card image (SPEC §9.9). */
 export async function updateSeo(input: unknown) {
   await requireAdmin();
   const parsed = seoSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error);
-  return updateSiteSettings("updateSeo", parsed.data);
+  return updateSiteSettings("updateSeo", parsed.data, ["ogImageUrl"]);
 }
 
 export async function setContactForm(input: unknown) {

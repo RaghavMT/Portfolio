@@ -34,6 +34,8 @@ import type { AdminProject } from "@/server/admin/queries";
 import { ConfirmDialog } from "./confirm-dialog";
 import { Field, useEntityForm } from "./entity-form";
 import { SwitchRow } from "./form-parts";
+import { GalleryField, type GalleryItem } from "./gallery-field";
+import { ImageField } from "./image-field";
 import { MarkdownField } from "./markdown-field";
 import { TagInput } from "./tag-input";
 
@@ -86,6 +88,13 @@ export function ProjectForm({
       startedOn: text(project?.startedOn?.slice(0, 7)),
       endedOn: text(project?.endedOn?.slice(0, 7)),
       tech: project?.tech ?? [],
+      coverImageUrl: text(project?.coverImageUrl),
+      coverImageAlt: text(project?.coverImageAlt),
+      gallery: (project?.gallery ?? []).map((g) => ({
+        url: g.url,
+        alt: g.alt,
+        caption: text(g.caption),
+      })),
       liveUrl: text(project?.liveUrl),
       repoUrl: text(project?.repoUrl),
       caseStudyUrl: text(project?.caseStudyUrl),
@@ -115,6 +124,9 @@ export function ProjectForm({
   const err = (name: keyof typeof errors) =>
     errors[name]?.message as string | undefined;
 
+  const galleryErrors = errors.gallery as
+    | Array<{ alt?: { message?: string }; caption?: { message?: string } }>
+    | undefined;
   const slug = watch("slug");
   const status = watch("status");
   const slugChangedOnPublished =
@@ -151,15 +163,11 @@ export function ProjectForm({
       const problems = publishProblems({
         summary: getValues("summary") ?? "",
         tech: getValues("tech") ?? [],
-        coverImageUrl: project?.coverImageUrl,
-        coverImageAlt: project?.coverImageAlt,
+        coverImageUrl: (getValues("coverImageUrl") as string) || null,
+        coverImageAlt: (getValues("coverImageAlt") as string) || null,
       });
       if (problems.length) {
-        for (const p of problems) {
-          if (p.field === "summary" || p.field === "tech") {
-            setError(p.field, { message: p.message });
-          }
-        }
+        for (const p of problems) setError(p.field, { message: p.message });
         toast.error(problems[0].message);
         return;
       }
@@ -351,9 +359,22 @@ export function ProjectForm({
           ))}
         </fieldset>
 
-        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          Cover image and gallery uploads arrive in a later update.
-        </p>
+        <ImageField
+          id="pj-cover"
+          label="Cover image"
+          kind="image"
+          url={(watch("coverImageUrl") as string) || null}
+          alt={(watch("coverImageAlt") as string) || null}
+          minWidth={1200}
+          help="Shown on the project card and at the top of the project page (16:9 works best). Required to publish."
+          urlError={err("coverImageUrl")}
+          altError={err("coverImageAlt")}
+          onChange={({ url, alt }) => {
+            setValue("coverImageUrl", url ?? "", { shouldDirty: true });
+            setValue("coverImageAlt", alt ?? "", { shouldDirty: true });
+            clearErrors(["coverImageUrl", "coverImageAlt"]);
+          }}
+        />
 
         <div className="space-y-3">
           {STORY_FIELDS.map((f) => (
@@ -394,6 +415,29 @@ export function ProjectForm({
             </details>
           ))}
         </div>
+
+        <Controller
+          control={control}
+          name="gallery"
+          render={({ field }) => (
+            <GalleryField
+              id="pj-gallery"
+              value={(field.value ?? []) as GalleryItem[]}
+              onChange={field.onChange}
+              error={
+                typeof errors.gallery?.message === "string"
+                  ? errors.gallery.message
+                  : undefined
+              }
+              errors={Object.fromEntries(
+                (galleryErrors ?? []).map((e, i) => [
+                  i,
+                  { alt: e?.alt?.message, caption: e?.caption?.message },
+                ]),
+              )}
+            />
+          )}
+        />
 
         <Field id="pj-status" label="Status">
           <Controller
@@ -503,7 +547,7 @@ export function ProjectForm({
           open={deleting}
           onOpenChange={setDeleting}
           title={`Delete “${project.title}”?`}
-          description="The project and its gallery are removed and disappear from your site immediately."
+          description="The project, its cover image and its gallery are deleted, and it disappears from your site immediately."
           requireTyped={project.title}
           pending={deletePending}
           onConfirm={confirmDelete}

@@ -6,6 +6,7 @@ import {
   certifications,
   education,
   experiences,
+  projectImages,
   projects,
   siteSettings,
   skillGroups,
@@ -94,6 +95,11 @@ export async function getAdminSettings() {
       openToWork: siteSettings.openToWork,
       openToWorkText: siteSettings.openToWorkText,
       aboutMd: siteSettings.aboutMd,
+      avatarUrl: siteSettings.avatarUrl,
+      avatarAlt: siteSettings.avatarAlt,
+      resumeUrl: siteSettings.resumeUrl,
+      resumeUpdatedAt: siteSettings.resumeUpdatedAt,
+      ogImageUrl: siteSettings.ogImageUrl,
       contactEmail: siteSettings.contactEmail,
       contactFormEnabled: siteSettings.contactFormEnabled,
       seoTitle: siteSettings.seoTitle,
@@ -120,6 +126,8 @@ export function listProjects() {
       tech: projects.tech,
       status: projects.status,
       featured: projects.featured,
+      coverImageUrl: projects.coverImageUrl,
+      coverImageAlt: projects.coverImageAlt,
       updatedAt: projects.updatedAt,
     })
     .from(projects)
@@ -127,11 +135,21 @@ export function listProjects() {
 }
 export type AdminProjectRow = Awaited<ReturnType<typeof listProjects>>[number];
 
-/** One full project for the edit form, or null (also for a malformed id). */
+/** One full project (with its gallery in display order) for the edit form, or null (also for a malformed id). */
 export async function getAdminProject(id: string) {
   if (!z.uuid().safeParse(id).success) return null;
   const [row] = await db.select().from(projects).where(eq(projects.id, id));
-  return row ?? null;
+  if (!row) return null;
+  const gallery = await db
+    .select({
+      url: projectImages.url,
+      alt: projectImages.alt,
+      caption: projectImages.caption,
+    })
+    .from(projectImages)
+    .where(eq(projectImages.projectId, id))
+    .orderBy(asc(projectImages.sortOrder), desc(projectImages.createdAt));
+  return { ...row, gallery };
 }
 export type AdminProject = NonNullable<
   Awaited<ReturnType<typeof getAdminProject>>

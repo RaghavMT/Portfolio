@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import bcrypt from "bcryptjs";
-import { E2E_PASSWORD } from "./tests/e2e/constants";
+import { E2E_PASSWORD, e2eBlobToken } from "./tests/e2e/constants";
 import { defineConfig, devices } from "@playwright/test";
 
 // E2E runs against a production build (SPEC §16.2) wired to the TEST database, never prod data.
@@ -70,6 +70,8 @@ export default defineConfig({
       SESSION_SECRET: "e2e-session-secret-e2e-session-secret-0123456789",
       IP_HASH_SALT: "e2e-ip-salt",
       ADMIN_PASSWORD_HASH: e2ePasswordHash,
+      // Never the real store token (SPEC §16.2): the test store's token, or a fake one.
+      BLOB_READ_WRITE_TOKEN: e2eBlobToken(),
     },
   },
 });

@@ -50,7 +50,7 @@ export async function duplicateProject(id: unknown) {
   return duplicateProjectRow("duplicateProject", id);
 }
 
-/** Cascades to the project's gallery rows; blob cleanup arrives with uploads (Phase 5). */
+/** Removes the project, its gallery rows (DB cascade) and its cover + gallery files from Blob. */
 export async function deleteProject(id: unknown) {
   await requireAdmin();
   return deleteProjectRow("deleteProject", id);

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { e2eBlobHost } from "./constants";
 import { loginAsAdmin, sql, visitorPage } from "./helpers";
 
 // FR-ADM-04 / FR-ADM-11 against the TEST database: the full project lifecycle
@@ -14,6 +15,9 @@ const TITLE = `E2E-${stamp} Project`;
 const SLUG = `e2e-${stamp}-project`;
 const COPY_TITLE = `Copy of ${TITLE}`;
 const COPY_SLUG = `copy-of-e2e-${stamp}-project`;
+// Publishing needs a cover (SPEC §9.5). This spec isn't about uploading, so the draft gets a cover URL
+// on the test store's host straight from SQL; real uploads are covered by admin-uploads.spec.ts.
+const coverUrl = () => `https://${e2eBlobHost()}/images/e2e-${stamp}-cover.png`;
 
 async function cleanup() {
   await sql`delete from projects where title like 'E2E-%' or title like 'Copy of E2E-%'`;
@@ -83,7 +87,7 @@ test("invalid input shows inline errors and saves nothing", async ({
   expect(await projectCount()).toBe(before);
 });
 
-test("publish rule: a summary and at least one technology", async ({
+test("publish rule: a summary, a technology and a cover image", async ({
   page,
 }) => {
   await loginAsAdmin(page);
@@ -94,6 +98,9 @@ test("publish rule: a summary and at least one technology", async ({
   await page.getByRole("button", { name: "Publish" }).click();
   await expect(
     page.getByText("Add at least one technology before publishing.").first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Add a cover image before publishing.").first(),
   ).toBeVisible();
   expect(await projectCount()).toBe(before);
 });
@@ -136,8 +143,11 @@ test("lifecycle: draft → publish → feature → edit → unpublish → duplic
   ).toBeVisible();
   expect(await projectCount()).toBe(before);
 
-  // publish from the edit form: add a tech tag first
+  // publish from the edit form: it needs a cover (set directly, see above) and a tech tag
+  await sql`update projects set cover_image_url = ${coverUrl()}, cover_image_alt = 'E2E cover'
+    where id = ${row!.id}`;
   await page.goto(`/admin/projects/${row!.id}`);
+  await expect(page.getByLabel("Describe the image")).toHaveValue("E2E cover");
   await page.locator("#pj-tech").fill("TypeScript");
   await page.locator("#pj-tech").press("Enter");
   await page.getByRole("button", { name: "Publish" }).click();
@@ -200,6 +210,10 @@ test("lifecycle: draft → publish → feature → edit → unpublish → duplic
     featured: false,
     title: COPY_TITLE,
   });
+  // a duplicate never shares the original's image files (SPEC §9.5)
+  const copyImages =
+    await sql`select cover_image_url from projects where slug = ${COPY_SLUG}`;
+  expect(copyImages[0].cover_image_url).toBeNull();
 
   // reorder: move the copy up on the list
   await page.goto("/admin/projects");
