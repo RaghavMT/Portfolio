@@ -45,8 +45,16 @@ export default defineConfig({
     {
       name: "admin",
       testMatch: /admin-.*\.spec\.ts/,
-      testIgnore: /admin-settings\.spec\.ts/,
+      testIgnore: /admin-(settings|uploads)\.spec\.ts/,
       dependencies: ["chromium", "mobile"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // Uploads publish and delete a project and change the avatar, résumé and share image, which the
+    // other admin specs' public-site checks would otherwise race with, so they run after those.
+    {
+      name: "admin-uploads",
+      testMatch: /admin-uploads\.spec\.ts/,
+      dependencies: ["admin"],
       use: { ...devices["Desktop Chrome"] },
     },
     // Settings changes the home page itself (section order/visibility, accent, contact form), which
@@ -54,7 +62,7 @@ export default defineConfig({
     {
       name: "admin-settings",
       testMatch: /admin-settings\.spec\.ts/,
-      dependencies: ["admin"],
+      dependencies: ["admin-uploads"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],

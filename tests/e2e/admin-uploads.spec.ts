@@ -295,7 +295,9 @@ test.describe("real uploads (test Blob store)", () => {
 
     await fileInput(page, "Cover image").setInputFiles(png("cover.png"));
     await expect(
-      page.getByRole("group", { name: "Cover image" }).getByRole("img"),
+      page
+        .getByRole("group", { name: "Cover image" })
+        .getByRole("button", { name: "Remove image" }),
     ).toBeVisible({ timeout: 30_000 });
     await page.getByLabel("Describe the image").fill("E2E cover alt");
 
@@ -440,7 +442,9 @@ test.describe("real uploads (test Blob store)", () => {
       await page.goto("/admin/profile");
       await fileInput(page, "Photo").setInputFiles(png("me.png"));
       await expect(
-        page.getByRole("group", { name: "Photo" }).getByRole("img"),
+        page
+          .getByRole("group", { name: "Photo" })
+          .getByRole("button", { name: "Remove image" }),
       ).toBeVisible({ timeout: 30_000 });
       await page.getByLabel("Describe the image").fill("E2E avatar alt");
       await page.getByRole("button", { name: "Save profile" }).click();
@@ -467,7 +471,9 @@ test.describe("real uploads (test Blob store)", () => {
       await page.goto("/admin/settings");
       await fileInput(page, /^Share image/).setInputFiles(png("og.png"));
       await expect(
-        page.getByRole("group", { name: /^Share image/ }).getByRole("img"),
+        page
+          .getByRole("group", { name: /^Share image/ })
+          .getByRole("button", { name: "Remove image" }),
       ).toBeVisible({ timeout: 30_000 });
       await page.getByRole("button", { name: "Save SEO" }).click();
       await expect(page.getByText("Saved — live on your site")).toBeVisible();

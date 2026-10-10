@@ -2,26 +2,26 @@
 
 _Updated at the end of every task. Newest phase on top._
 
-## Phase 5 — Uploads · built; offline checks verified, real-Blob specs NOT yet run (2026-10-10)
+## Phase 5 — Uploads · built and verified locally (2026-10-10)
 
-### Blocked on a decision (Raghav)
-- **Test Blob store token.** `media` (public, all environments, token now in `.env.local`) and `media-test` (public, unconnected) were created from the Vercel CLI. The CLI cannot print a standalone read-write token for `media-test`, and connecting it to `portfolio` collides with `BLOB_READ_WRITE_TOKEN`. Until `BLOB_READ_WRITE_TOKEN_TEST` is set in `.env.local`, the 4 real-upload specs in `tests/e2e/admin-uploads.spec.ts` are **skipped**, so these AC items are only covered by unit tests and code review, not yet run for real: "replacing the resume deletes the old blob and `/resume` serves the new one", "deleting a project removes its blobs", cover → public card ≤ 5 s, avatar/OG replace and remove, SVG/oversize refused by Blob itself. Options: (1) agent creates a throwaway Vercel project just to hold the `media-test` token, (2) run the 4 specs once against the empty `media` store, (3) add the token by hand.
-- Vercel env vars from Phase 3 are still not set (admin unusable on the deployed site).
-- Not looked at in a browser at 375 / 1440 px, light/dark, keyboard-only with a real upload (axe + overflow checks pass on the new fields).
+### Open
+- Not looked at by eye at 375 / 1440 px, light/dark, keyboard-only with a real upload (axe + 375 px overflow checks pass on the new fields). Do one real upload in `pnpm dev` before launch.
+- Vercel env vars from Phase 3 (`SESSION_SECRET`, `IP_HASH_SALT`, `ADMIN_PASSWORD_HASH`) are still not set, so the admin is unusable on the deployed site. The Blob token is set (store `media`, all environments).
+- Leftovers on Raghav's Vercel account (all free, empty): store `media-test` (unused, can be deleted in the dashboard) and project `portfolio-e2e` + store `media-e2e` (hold the E2E token; keep while you run E2E).
 
 ### Built
 - `src/lib/upload-rules.ts` (limits, `checkFile`, `uploadPathname`, `isBlobUrl`, `blobHostFromToken`, `unusedFiles`), `src/lib/same-origin.ts`, `src/server/blob.ts`, `src/app/api/upload/route.ts` (session -> 401, Origin -> 403, token rules from the server).
-- `ImageField`, `GalleryField`, `ResumeField`, `FileDrop`, `use-upload`; wired into the project form (cover + gallery, publish now needs a cover), Profile (avatar, résumé saved on its own), Settings -> SEO (share image + link preview), project list thumbnails.
-- `images.remotePatterns` = this store's host only (derived from the token). Decision Log D31-D34. New dep: `@vercel/blob` (§6.1).
-- ESLint now ignores `.claude/**` (it was linting the untracked agent worktree copy: 15k errors).
+- `ImageField`, `GalleryField`, `ResumeField`, `FileDrop`, `use-upload`; wired into the project form (cover + gallery; publishing now needs a cover), Profile (avatar; résumé saves on its own), Settings -> SEO (share image + link preview), project list thumbnails.
+- `images.remotePatterns` = this store's host only (derived from the token). Decision Log D31-D35. New dep: `@vercel/blob` (§6.1).
+- ESLint now ignores `.claude/**` (it was linting the untracked agent worktree: 15k errors).
 
 ### AC evidence
-- `pnpm lint`, `typecheck`, `format:check`, `build` exit 0. `pnpm test` -> 26 files, 366 tests passed (rules written first and watched fail for the schemas, blob helpers and route; `upload-rules` tests were written but not seen failing before the implementation).
-- `pnpm test:e2e` (test DB, fake Blob token): **72 passed, 14 skipped** (10 desktop-only auth specs on mobile + the 4 real-upload specs). Offline upload specs pass: unauthenticated `/api/upload` -> 401, foreign/missing Origin -> 403, token carries the right types/size/random suffix per kind, bad kind or folder -> 400, 6 MB image / SVG / PNG-as-résumé rejected in the browser with no request sent, axe + 375 px on Profile, New project, Settings. Project lifecycle passes with the cover rule on.
+- `pnpm lint`, `typecheck`, `format:check`, `build` exit 0. `pnpm test` -> 26 files, 366 tests passed (schemas, blob helpers and the route were written first and seen failing; the `upload-rules` tests were not seen failing before the implementation).
+- `pnpm test:e2e` (test DB + separate test Blob store, final tree): **76 passed, 10 skipped** (the desktop-only auth specs on mobile), exit 0. Against the real test store: Blob itself refuses an SVG and a 6 MB file even with a valid token; cover + 2 gallery images -> on the public card within 5 s; dropping a gallery image deletes its file; **deleting the project deletes its cover and gallery files** (`head()` -> not found); **replacing the résumé deletes the old file and `/resume` redirects to the new one**; removing it deletes the file; avatar and share image upload/remove delete their files. Offline: unauthenticated `/api/upload` -> 401, foreign/missing Origin -> 403, token types/size/random suffix per kind, bad kind/folder -> 400, 6 MB image / SVG / PNG-as-résumé rejected in the browser with no request sent. Production store `media` held 0 files after all runs.
 
 ### Notes
-- E2E specs I had to touch: lifecycle tests now have a 90 s timeout and the skills hide/show/remove steps wait for the saved row before timing the 5 s public window (they failed under load/Neon latency; a full run takes ~3 min and still sometimes hits a transient Neon `fetch failed`, rerun it).
-- Mistake worth knowing: running `pnpm` in a scratch git worktree whose `node_modules` was a junction to this repo re-pointed this repo's package links at the scratch path and broke the build. Fixed with `pnpm install --frozen-lockfile`. Don't share `node_modules` between worktrees.
+- E2E: a full run takes ~5 min. Before the last change, several full runs each failed one "visible on the public site <= 5 s" check in a different spec (and once a transient Neon `fetch failed`); each passed alone. Fixes: the uploads spec runs in its own project after `admin` (D35), lifecycle tests have a 90 s timeout, and the skills hide/show/remove steps wait for the saved row before timing the 5 s window. Possible product-side cause not proven: a public page regenerating while a write + invalidation lands could keep stale content until the next edit. One clean full run after the change; if it recurs, investigate before launch.
+- Mistake worth knowing: running `pnpm` in a scratch git worktree whose `node_modules` was a junction to this repo re-pointed this repo's package links at the scratch path and broke the build (fixed with `pnpm install --frozen-lockfile`). Never share `node_modules` between worktrees.
 
 ## Phase 4 — Admin CRUD (no uploads) · built and verified locally (2026-10-10)
 
