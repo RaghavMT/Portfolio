@@ -2,6 +2,29 @@
 
 _Updated at the end of every task. Newest phase on top._
 
+## Phase 4 — Admin CRUD (no uploads) · built and verified locally (2026-10-10)
+
+### Built
+- Entities, all with list/form, reorder, show/hide, delete-with-confirm, inline errors, toasts, unsaved-changes guard: social links, certifications, education, experience, skills (group cards + chips), profile (text fields), settings (section order/visibility, accent, SEO, contact toggle, log out of all devices), projects (filters, search, publish/feature, duplicate, delete by typing the title).
+- Shared pieces: `ResourceManager`, `SortableList` (drag + up/down, 500 ms debounced save), `VisibilityToggle`, `ConfirmDialog`, `useEntityForm`/`Field`, `MarkdownField`, `TagInput`, `ListEditor`; server `runMutation` (write -> `invalidateContent()` -> log), `listResource`, `applyOrder` (atomic `db.batch`).
+- Decision Log D24-D30. New deps (all SPEC 6.1): react-hook-form, @hookform/resolvers, @dnd-kit/*, sonner. shadcn's `next-themes` was removed (not in 6.1).
+
+### Two real bugs found by the E2E and fixed (D30)
+- `/projects/[slug]` returned **HTTP 500** for any slug not known at build time, i.e. every project published later from the admin. `params` is now awaited inside `<Suspense>`.
+- `next build` failed on `/admin/projects/[id]` (`usePathname()` in `AdminNav` outside Suspense). Wrapped in Suspense.
+
+### AC evidence
+- `pnpm format:check`, `typecheck`, `lint` exit 0. `pnpm test` -> 23 files, 273 tests passed (includes the unauthenticated-call sweep over every admin action file).
+- `pnpm test:e2e` (test DB, production build, run on the final tree): **65 passed, 10 skipped** (the auth specs are desktop-only), exit 0. Per entity: invalid input saves nothing; create/edit/hide/reorder/delete each reflected on the public site within 5 s; axe 0 serious/critical; no horizontal scroll at 375 px. Projects lifecycle: draft is not public -> publish -> feature -> edit (`published_at` unchanged) -> unpublish -> duplicate -> reorder -> delete.
+
+### Not verified / open
+- Preview is **not** in this phase (D26, approved): the lifecycle checks "draft is not public" instead; Phase 7 adds the preview step.
+- Publish does not require a cover image yet (D27); flip `REQUIRE_COVER_ON_PUBLISH` in Phase 5.
+- Deleting a project removes its gallery rows only; Blob files are deleted in Phase 5.
+- E2E needs Neon from this machine; builds/tests intermittently fail with `fetch failed` or slow logins. The suite uses generous waits for the save before timing the 5 s public window. If a run fails with a Neon error, rerun before debugging.
+- Manual look at the admin at 375 / 1440 px was **not** done beyond the automated axe + overflow checks.
+- Vercel env vars (`SESSION_SECRET`, `IP_HASH_SALT`, `ADMIN_PASSWORD_HASH`) are still not set, so the admin is unusable on the deployed site (Phase 3 item, unchanged).
+
 ## Phase 3 — Auth · built and verified locally (2026-10-09); NOT live until Vercel env vars are set
 
 ### Blocked on Raghav

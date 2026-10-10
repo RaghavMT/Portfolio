@@ -81,6 +81,16 @@ test("sections: reorder and hide are saved and reach the public site ≤ 5 s", a
     page.getByRole("button", { name: new RegExp(`^Skills: ${state}`) });
   await toggle("Visible").click();
   await expect(toggle("Hidden")).toBeVisible();
+  // The toggle flips optimistically, so wait for the save itself before timing the public site.
+  await expect
+    .poll(
+      async () =>
+        (await setting<{ key: string; visible: boolean }[]>("sections")).find(
+          (x) => x.key === "skills",
+        )?.visible,
+      { timeout: 15_000 },
+    )
+    .toBe(false);
   const visitor = await visitorPage(browser);
   try {
     await expect

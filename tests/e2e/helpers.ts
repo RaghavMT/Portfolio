@@ -17,7 +17,8 @@ export async function logIn(page: Page, password = E2E_PASSWORD) {
 export async function loginAsAdmin(page: Page) {
   await page.goto("/admin/login");
   await logIn(page);
-  await expect(page).toHaveURL(/\/admin$/);
+  // Generous: the login round trips to a remote database.
+  await expect(page).toHaveURL(/\/admin$/, { timeout: 15_000 });
 }
 
 /** A fresh, logged-out visitor (new context) — what the public sees after a change. */
