@@ -104,6 +104,7 @@ export default async function HomePage() {
                 key={key}
                 email={settings.contactEmail}
                 socials={socials}
+                formEnabled={settings.contactFormEnabled}
               />
             );
         }

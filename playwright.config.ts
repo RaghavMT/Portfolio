@@ -80,6 +80,9 @@ export default defineConfig({
       ADMIN_PASSWORD_HASH: e2ePasswordHash,
       // Never the real store token (SPEC §16.2): the test store's token, or a fake one.
       BLOB_READ_WRITE_TOKEN: e2eBlobToken(),
+      // Never send real email from tests (SPEC §16.2): blank keys switch notifications off.
+      RESEND_API_KEY: "",
+      CONTACT_FROM_EMAIL: "",
     },
   },
 });
