@@ -1,3 +1,4 @@
+import { BackupButton } from "@/components/admin/backup-button";
 import { SettingsSections } from "@/components/admin/settings-sections";
 import {
   AppearanceForm,
@@ -82,6 +83,13 @@ export default async function SettingsPage() {
 
       <Block title="Contact form">
         <ContactFormToggle enabled={settings.contactFormEnabled} />
+      </Block>
+
+      <Block
+        title="Backup"
+        hint="Downloads all your content as one file, including visitor messages, so keep it private. Take one monthly and before big changes."
+      >
+        <BackupButton />
       </Block>
 
       <Block
