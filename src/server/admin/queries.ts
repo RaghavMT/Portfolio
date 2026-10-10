@@ -164,6 +164,27 @@ export async function listProjectTechTags() {
   );
 }
 
+/** Counts for the dashboard cards and the profile checklist (SPEC §9.3). */
+export async function getDashboardData() {
+  const [statusRows, [links]] = await Promise.all([
+    db
+      .select({ status: projects.status, n: count() })
+      .from(projects)
+      .groupBy(projects.status),
+    db
+      .select({ n: count() })
+      .from(socialLinks)
+      .where(eq(socialLinks.visible, true)),
+  ]);
+  const byStatus = (status: "published" | "draft") =>
+    statusRows.find((r) => r.status === status)?.n ?? 0;
+  return {
+    publishedProjects: byStatus("published"),
+    draftProjects: byStatus("draft"),
+    visibleSocialLinks: links?.n ?? 0,
+  };
+}
+
 const INBOX_LIMIT = 200;
 
 /** Newest first, archived included (the inbox filters in the browser); capped at 200 rows. */

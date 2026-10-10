@@ -20,7 +20,7 @@ export default async function ProfilePage() {
       {settings ? (
         <div className="max-w-2xl space-y-10">
           <ProfileForm settings={settings} />
-          <div className="border-t pt-8">
+          <div id="resume" className="scroll-mt-4 border-t pt-8">
             <ResumeField
               url={settings.resumeUrl}
               updatedAt={settings.resumeUpdatedAt?.toISOString() ?? null}

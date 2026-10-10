@@ -12,16 +12,21 @@ import type { Accent } from "@/lib/validation/site-settings";
 export const metadata = { title: "Settings" };
 
 function Block({
+  id,
   title,
   hint,
   children,
 }: {
+  id?: string;
   title: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3 border-t pt-6 first:border-t-0 first:pt-0">
+    <section
+      id={id}
+      className="scroll-mt-4 space-y-3 border-t pt-6 first:border-t-0 first:pt-0"
+    >
       <div>
         <h2 className="text-lg font-semibold">{title}</h2>
         {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
@@ -67,7 +72,11 @@ export default async function SettingsPage() {
         <AppearanceForm accent={settings.accent as Accent} />
       </Block>
 
-      <Block title="SEO" hint="How your site appears in search results.">
+      <Block
+        id="seo"
+        title="SEO"
+        hint="How your site appears in search results."
+      >
         <SeoForm settings={settings} />
       </Block>
 
