@@ -1,7 +1,11 @@
 "use server";
 
 import { headers } from "next/headers";
-import { contactLimitReached, isBotSubmission } from "@/lib/contact-rules";
+import {
+  CONTACT_SUCCESS,
+  contactLimitReached,
+  isBotSubmission,
+} from "@/lib/contact-rules";
 import { clientIp, hashIp } from "@/lib/ip-hash";
 import { logAction } from "@/lib/logger";
 import { messageSchema } from "@/lib/validation/message";
@@ -25,7 +29,6 @@ export type ContactState = {
   values?: ContactValues;
 };
 
-export const CONTACT_SUCCESS = "Thanks — I'll reply within 2 working days.";
 const GENERIC_ERROR =
   "Something went wrong and your message was not sent. Please try again, or email me directly.";
 

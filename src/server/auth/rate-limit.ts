@@ -24,3 +24,13 @@ export function evaluateLock(counts: {
 export function failureDelayMs(random: () => number = Math.random): number {
   return 300 + Math.floor(random() * 201);
 }
+
+/** True when a failed attempt is the one that tipped the global lock on (email Raghav once, §12.2). */
+export function justEngagedGlobalLock(
+  before: LockState,
+  after: LockState,
+): boolean {
+  const wasGlobal = before.locked && before.scope === "global";
+  const isGlobal = after.locked && after.scope === "global";
+  return isGlobal && !wasGlobal;
+}

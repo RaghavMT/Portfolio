@@ -2,6 +2,28 @@
 
 _Updated at the end of every task. Newest phase on top._
 
+## Phase 6 — Contact form & inbox · built and verified locally (2026-10-10)
+
+### Open
+- **Real email is not verified.** No Resend account exists (§17 Q7 default: inbox only), so `RESEND_API_KEY` / `CONTACT_FROM_EMAIL` are unset everywhere. The send code and the lockout alert are unit-tested against a mock only (D40). To turn on: create a Resend account, verify a sender, add both variables on Vercel, redeploy, send yourself a test message.
+- Unread badge and inbox on the live admin, and the live form, have not been looked at by hand (axe + 375 px overflow pass in E2E).
+- **Flaky check seen again:** the first full E2E run failed once in `admin-projects.spec.ts` ("published project visible on the public site <= 5 s", line 177); that failure also stopped 18 dependent tests. The immediate rerun passed fully. Same family as the Phase 5 note below; still not root-caused. Investigate before launch (Phase 8).
+
+### Built
+- `src/lib/contact-rules.ts` (honeypot / 3 s / stamp rules, 3-per-hour and 20-per-day limits, `replyMailto`, success text), `formatRelativeTime` + `formatAdminTimestamp` (Asia/Kolkata) in `src/lib/format.ts`.
+- `src/server/actions/contact.ts` (`sendMessage`, public), `src/server/contact.ts` (rate counts + insert), `src/server/email.ts` (optional Resend: contact notification + the §12.2 lockout alert, wired into `login` via `justEngagedGlobalLock`).
+- `ContactForm` (plain `useActionState`, no form library) in the Contact section when `contact_form_enabled`; the email link and socials stay either way.
+- Admin: `/admin/messages` inbox (Inbox / Archived tabs, side sheet, Reply `mailto:`, Mark unread, Archive, Delete with confirm), `src/server/actions/admin/messages.ts`, unread badge in the nav (server component streamed into a nav slot).
+- Decision Log D36-D40. New dep: `resend` (already §6.1). No migration.
+
+### AC evidence
+- `pnpm lint`, `typecheck`, `format:check`, `build` exit 0. `pnpm test` -> 29 files, 404 tests passed (rules, format, email, `sendMessage` and the lockout decision were written first and seen failing; the authorization sweep now includes `messages.ts`).
+- `pnpm test:e2e` (test DB, final tree, second run): **82 passed, 10 skipped** (desktop-only specs on mobile), exit 0. New `admin-messages.spec.ts`: visitor message -> row (IP stored only as a 64-char hash) -> badge -> open marks read -> mark unread -> archive -> Archived tab -> delete (cancel keeps it); a message after a real 3 s wait is stored; **4th message from one IP in an hour is refused with the "email me directly at ..." text and no row (3 rows)**; honeypot and under-3 s submissions show success but store nothing; invalid input shows inline errors, keeps the text, stores nothing; axe 0 serious/critical and no overflow at 375 px on `/` and `/admin/messages`. `admin-settings.spec.ts`: turning the contact form off removes it from `/` within 5 s, turning it on brings it back.
+
+### Notes
+- A `"use server"` file may only export async functions: exporting the success-text constant broke `next build` while all unit tests passed. The constant now lives in `contact-rules.ts`.
+- The tab list needs a `TabsContent` panel or axe flags `aria-controls` as critical.
+
 ## Phase 5 — Uploads · built and verified locally (2026-10-10)
 
 ### Open

@@ -4,6 +4,7 @@ import {
   IP_LIMIT,
   evaluateLock,
   failureDelayMs,
+  justEngagedGlobalLock,
 } from "@/server/auth/rate-limit";
 
 describe("evaluateLock", () => {
@@ -44,5 +45,22 @@ describe("failureDelayMs", () => {
       expect(d).toBeGreaterThanOrEqual(300);
       expect(d).toBeLessThanOrEqual(500);
     }
+  });
+});
+
+describe("justEngagedGlobalLock (SPEC §12.2 lockout email)", () => {
+  const open = { locked: false } as const;
+  const ip = { locked: true, scope: "ip" } as const;
+  const global = { locked: true, scope: "global" } as const;
+
+  it("alerts only when a failure tips the lock from not-global to global", () => {
+    expect(justEngagedGlobalLock(open, global)).toBe(true);
+    expect(justEngagedGlobalLock(ip, global)).toBe(true);
+  });
+
+  it("stays quiet otherwise", () => {
+    expect(justEngagedGlobalLock(open, open)).toBe(false);
+    expect(justEngagedGlobalLock(open, ip)).toBe(false);
+    expect(justEngagedGlobalLock(global, global)).toBe(false);
   });
 });

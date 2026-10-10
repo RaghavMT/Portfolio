@@ -1,11 +1,12 @@
 import "server-only";
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db/client";
 import {
   certifications,
   education,
   experiences,
+  messages,
   projectImages,
   projects,
   siteSettings,
@@ -161,4 +162,35 @@ export async function listProjectTechTags() {
   return [...new Set(rows.flatMap((r) => r.tech))].sort((a, b) =>
     a.localeCompare(b),
   );
+}
+
+const INBOX_LIMIT = 200;
+
+/** Newest first, archived included (the inbox filters in the browser); capped at 200 rows. */
+export function listMessages() {
+  return db
+    .select({
+      id: messages.id,
+      name: messages.name,
+      email: messages.email,
+      company: messages.company,
+      subject: messages.subject,
+      body: messages.body,
+      readAt: messages.readAt,
+      archived: messages.archived,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .orderBy(desc(messages.createdAt))
+    .limit(INBOX_LIMIT);
+}
+export type AdminMessage = Awaited<ReturnType<typeof listMessages>>[number];
+
+/** Unread, not archived: the number on the sidebar badge (SPEC §9.1). */
+export async function countUnreadMessages() {
+  const [row] = await db
+    .select({ n: count() })
+    .from(messages)
+    .where(and(isNull(messages.readAt), eq(messages.archived, false)));
+  return row?.n ?? 0;
 }

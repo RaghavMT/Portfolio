@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { ExternalLink, LogOut, Menu } from "lucide-react";
 import { logout } from "@/server/actions/auth";
@@ -21,7 +22,7 @@ const LINKS = [
 const item =
   "flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-sm transition-colors hover:bg-muted";
 
-function NavList({ pathname }: { pathname: string }) {
+function NavList({ pathname, badge }: { pathname: string; badge: ReactNode }) {
   return (
     <>
       <ul className="space-y-1">
@@ -38,6 +39,7 @@ function NavList({ pathname }: { pathname: string }) {
                 className={`${item} ${active ? "bg-muted font-medium" : "text-muted-foreground"}`}
               >
                 {l.label}
+                {l.href === "/admin/messages" ? badge : null}
               </Link>
             </li>
           );
@@ -64,14 +66,14 @@ function NavList({ pathname }: { pathname: string }) {
 }
 
 /** Sidebar on desktop; a top disclosure menu at narrow widths (SPEC §9.1). */
-export function AdminNav() {
+export function AdminNav({ badge }: { badge?: ReactNode }) {
   const pathname = usePathname();
   return (
     <>
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 overflow-y-auto border-r p-4 md:block">
         <p className="mb-4 px-3 font-semibold">Admin</p>
         <nav aria-label="Admin">
-          <NavList pathname={pathname} />
+          <NavList pathname={pathname} badge={badge} />
         </nav>
       </aside>
       <header className="border-b md:hidden">
@@ -82,7 +84,7 @@ export function AdminNav() {
             <span className="sr-only">Toggle menu</span>
           </summary>
           <nav aria-label="Admin" className="border-t p-4">
-            <NavList pathname={pathname} />
+            <NavList pathname={pathname} badge={badge} />
           </nav>
         </details>
       </header>

@@ -10,7 +10,9 @@ import { db } from "../db/client";
 import { siteSettings } from "../db/schema";
 import { getLockState, recordAttempt } from "../auth/login-attempts";
 import { verifyPassword } from "../auth/password";
-import { failureDelayMs } from "../auth/rate-limit";
+import { failureDelayMs, justEngagedGlobalLock } from "../auth/rate-limit";
+import { sendLockoutAlert } from "../email";
+import { getSettings } from "../queries/public";
 import {
   SESSION_COOKIE,
   sessionCookieOptions,
@@ -21,6 +23,20 @@ import {
 export type LoginState = { error: string | null };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** SPEC §12.2: when this failure tips the global lock on, tell the owner once (email is optional). */
+async function notifyIfGlobalLockEngaged(
+  ipHash: string,
+  before: Awaited<ReturnType<typeof getLockState>>,
+) {
+  try {
+    if (!justEngagedGlobalLock(before, await getLockState(ipHash))) return;
+    const settings = await getSettings();
+    if (settings) await sendLockoutAlert(settings.contactEmail);
+  } catch {
+    // the alert is best-effort; it must never change the login result
+  }
+}
 
 /** Public by necessity (it is the login). Rate-limited per SPEC §12.2; generic errors only. */
 export async function login(
@@ -36,7 +52,8 @@ export async function login(
     if (!salt) throw new Error("IP_HASH_SALT is not set");
     const ipHash = hashIp(clientIp(await headers()), salt);
 
-    if ((await getLockState(ipHash)).locked) {
+    const lockBefore = await getLockState(ipHash);
+    if (lockBefore.locked) {
       logAction({ action: "login", ok: false, startedAt, code: "locked" });
       return { error: "Too many attempts. Try again later." };
     }
@@ -47,6 +64,7 @@ export async function login(
     await recordAttempt(ipHash, valid);
 
     if (!valid) {
+      await notifyIfGlobalLockEngaged(ipHash, lockBefore);
       await sleep(failureDelayMs());
       logAction({
         action: "login",

@@ -4,6 +4,9 @@ export const MIN_FILL_MS = 3000;
 export const IP_HOURLY_LIMIT = 3;
 export const DAILY_LIMIT = 20;
 
+/** Shown after a send, and after a silently dropped bot submission (SPEC §11.2 step 6). */
+export const CONTACT_SUCCESS = "Thanks — I'll reply within 2 working days.";
+
 /**
  * True when the submission should be dropped silently: honeypot filled, sent under 3 s after the
  * form rendered, or a render stamp that is missing, malformed or in the future (a script that never

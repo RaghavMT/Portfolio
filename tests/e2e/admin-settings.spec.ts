@@ -152,15 +152,36 @@ test("SEO: counters, invalid input saves nothing, valid input saves", async ({
   await expect.poll(() => setting<string>("seo_description")).toBe(valid);
 });
 
-test("contact form toggle saves", async ({ page }) => {
+test("contact form toggle saves and hides or shows the form on the public site", async ({
+  page,
+  browser,
+}) => {
   await loginAsAdmin(page);
   await page.goto("/admin/settings");
   const toggle = page.getByRole("switch", { name: "Contact form" });
   const wasOn = snapshot.contact_form_enabled;
+
+  const formVisible = async () => {
+    const visitor = await visitorPage(browser);
+    try {
+      await visitor.page.goto("/");
+      return (await visitor.page.locator("#contact-name").count()) > 0;
+    } finally {
+      await visitor.close();
+    }
+  };
+
   await toggle.click();
   await expect
     .poll(() => setting<boolean>("contact_form_enabled"), { timeout: 5000 })
     .toBe(!wasOn);
+  await expect.poll(formVisible, { timeout: 5000 }).toBe(!wasOn);
+
+  await toggle.click();
+  await expect
+    .poll(() => setting<boolean>("contact_form_enabled"), { timeout: 5000 })
+    .toBe(wasOn);
+  await expect.poll(formVisible, { timeout: 5000 }).toBe(wasOn);
 });
 
 test("log out of all devices needs a confirm and ends the session", async ({
