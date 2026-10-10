@@ -156,6 +156,42 @@ export type AdminProject = NonNullable<
   Awaited<ReturnType<typeof getAdminProject>>
 >;
 
+/**
+ * A project of ANY status plus its gallery and where it would sit among the published ones, for the
+ * admin draft preview (SPEC §9.10). Same shape as the public `getProjectBySlug`. Null for an unknown
+ * or malformed id. Admin only: it returns drafts.
+ */
+export async function getPreviewProject(id: string) {
+  if (!z.uuid().safeParse(id).success) return null;
+  const [project] = await db.select().from(projects).where(eq(projects.id, id));
+  if (!project) return null;
+
+  const [images, ordered] = await Promise.all([
+    db
+      .select()
+      .from(projectImages)
+      .where(eq(projectImages.projectId, id))
+      .orderBy(asc(projectImages.sortOrder), desc(projectImages.createdAt)),
+    db
+      .select({ id: projects.id, slug: projects.slug, title: projects.title })
+      .from(projects)
+      .where(eq(projects.status, "published"))
+      .orderBy(asc(projects.sortOrder), desc(projects.createdAt)),
+  ]);
+
+  // A published project sits where it is; a draft is shown as if it were last in line.
+  const index = ordered.findIndex((p) => p.id === id);
+  const position = index >= 0 ? index : ordered.length;
+  const toLink = (p: { slug: string; title: string } | undefined) =>
+    p ? { slug: p.slug, title: p.title } : null;
+  return {
+    project,
+    images,
+    previous: toLink(ordered[position - 1]),
+    next: index >= 0 ? toLink(ordered[position + 1]) : null,
+  };
+}
+
 /** Every tech tag used on any project, for the tag input's suggestions. */
 export async function listProjectTechTags() {
   const rows = await db.select({ tech: projects.tech }).from(projects);

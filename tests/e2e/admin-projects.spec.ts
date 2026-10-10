@@ -128,6 +128,43 @@ test("lifecycle: draft → publish → feature → edit → unpublish → duplic
   await expectPublic(browser, "/projects", TITLE, false);
   await expectPublic(browser, `/projects/${SLUG}`, "First summary", false);
 
+  // preview (FR-ADM-09): the button opens the draft in a new tab, framed like the public site, with a
+  // "not public" banner; a logged-out visitor is sent to the login page and sees nothing of the draft
+  const previewLink = page.getByRole("link", { name: /Preview/ });
+  await expect(previewLink).toBeVisible();
+  const [tab] = await Promise.all([
+    page.context().waitForEvent("page"),
+    previewLink.click(),
+  ]);
+  await expect(tab).toHaveURL(
+    new RegExp(`/admin/preview/projects/${row!.id}$`),
+  );
+  await expect(tab.getByTestId("preview-banner")).toContainText(
+    "Preview — not public",
+  );
+  await expect(tab.getByRole("heading", { level: 1 })).toHaveText(TITLE);
+  await expect(tab.getByText("First summary")).toBeVisible();
+  await expect(tab.getByRole("navigation", { name: "Main" })).toBeVisible();
+  await tab.close();
+
+  const stranger = await visitorPage(browser);
+  try {
+    await stranger.page.goto(`/admin/preview/projects/${row!.id}`);
+    await expect(stranger.page).toHaveURL(/\/admin\/login/);
+    await expect(stranger.page.getByText("First summary")).toHaveCount(0);
+  } finally {
+    await stranger.close();
+  }
+
+  // an unknown or malformed id is simply not found
+  for (const id of [crypto.randomUUID(), "not-a-uuid"]) {
+    await page.goto(`/admin/preview/projects/${id}`);
+    await expect(
+      page.getByRole("heading", { name: "Page not found" }),
+    ).toBeVisible();
+  }
+  await page.goto(`/admin/projects/${row!.id}`);
+
   // slug uniqueness is checked on blur: a second project can't take the same slug
   await page.goto("/admin/projects/new");
   const before = await projectCount();

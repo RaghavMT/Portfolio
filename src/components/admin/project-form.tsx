@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -517,6 +517,18 @@ export function ProjectForm({
           <Button asChild size="lg" variant="ghost">
             <Link href="/admin/projects">Back to projects</Link>
           </Button>
+          {project ? (
+            <Button asChild size="lg" variant="outline">
+              <a
+                href={`/admin/preview/projects/${project.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Eye aria-hidden /> Preview
+                <span className="sr-only">(opens in a new tab)</span>
+              </a>
+            </Button>
+          ) : null}
           {project && isPublished ? (
             <Button asChild size="lg" variant="ghost">
               <a
@@ -540,6 +552,12 @@ export function ProjectForm({
             </Button>
           ) : null}
         </div>
+        {project ? (
+          <p className="text-sm text-muted-foreground">
+            Preview shows the last saved version. Save your changes first to see
+            them.
+          </p>
+        ) : null}
       </form>
 
       {project ? (
