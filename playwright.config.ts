@@ -45,7 +45,16 @@ export default defineConfig({
     {
       name: "admin",
       testMatch: /admin-.*\.spec\.ts/,
+      testIgnore: /admin-settings\.spec\.ts/,
       dependencies: ["chromium", "mobile"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // Settings changes the home page itself (section order/visibility, accent, contact form), which
+    // every other admin spec asserts on, so it runs alone and last.
+    {
+      name: "admin-settings",
+      testMatch: /admin-settings\.spec\.ts/,
+      dependencies: ["admin"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],

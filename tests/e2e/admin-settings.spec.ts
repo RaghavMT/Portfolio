@@ -106,7 +106,10 @@ test("appearance: picking an accent updates the live swatch, and saves", async (
   await loginAsAdmin(page);
   await page.goto("/admin/settings");
   const target = snapshot.accent === "rose" ? "teal" : "rose";
-  await page.getByLabel(target[0].toUpperCase() + target.slice(1)).check();
+  // The radio is visually hidden inside its swatch label, so click the label like a user does.
+  await page
+    .locator("label", { hasText: target[0].toUpperCase() + target.slice(1) })
+    .click();
   await expect(page.getByTestId("accent-preview")).toContainText(
     target[0].toUpperCase() + target.slice(1),
   );
