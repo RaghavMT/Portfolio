@@ -11,7 +11,10 @@ async function Guard({ children }: { children: React.ReactNode }) {
 export default function ProtectedLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <AdminNav />
+      {/* usePathname() is runtime data; on dynamic routes (/admin/projects/[id]) it must stream in. */}
+      <Suspense fallback={null}>
+        <AdminNav />
+      </Suspense>
       <main id="main" className="min-w-0 flex-1 p-4 md:p-8">
         <Suspense fallback={<p className="text-muted-foreground">Loading…</p>}>
           <Guard>{children}</Guard>
