@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { JsonLd } from "@/components/public/json-ld";
 import { TagList } from "@/components/public/section";
 import { formatMonth } from "@/lib/format";
@@ -38,9 +39,26 @@ export async function generateMetadata({
 const linkClass =
   "inline-flex min-h-10 items-center gap-2 rounded-md border px-4 text-sm transition-colors hover:bg-muted";
 
-export default async function ProjectPage({
+// `params` is awaited INSIDE <Suspense>: with Partial Prefetching that is what lets Next serve the
+// App Shell and then render a slug that wasn't known at build time (e.g. a project published later
+// from the admin). Awaiting it at the top level made such slugs fail with a 500.
+export default function ProjectPage(props: PageProps<"/projects/[slug]">) {
+  return (
+    <Suspense
+      fallback={
+        <article className="mx-auto w-full max-w-3xl px-4 py-12 sm:py-16">
+          <p className="text-muted-foreground">Loading project…</p>
+        </article>
+      }
+    >
+      <ProjectContent params={props.params} />
+    </Suspense>
+  );
+}
+
+async function ProjectContent({
   params,
-}: PageProps<"/projects/[slug]">) {
+}: Pick<PageProps<"/projects/[slug]">, "params">) {
   const { slug } = await params;
   const data = await getProjectBySlug(slug);
   if (!data) notFound();
