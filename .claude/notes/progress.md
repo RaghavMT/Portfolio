@@ -5,8 +5,8 @@ _Updated at the end of every task. Newest phase on top._
 ## Phase 5 — Uploads · built and verified locally (2026-10-10)
 
 ### Open
-- Not looked at by eye at 375 / 1440 px, light/dark, keyboard-only with a real upload (axe + 375 px overflow checks pass on the new fields). Do one real upload in `pnpm dev` before launch.
-- Vercel env vars from Phase 3 (`SESSION_SECRET`, `IP_HASH_SALT`, `ADMIN_PASSWORD_HASH`) are still not set, so the admin is unusable on the deployed site. The Blob token is set (store `media`, all environments).
+- Raghav tried a real upload on the live admin and said it works; a systematic look at 375 / 1440 px, light/dark and keyboard-only is still for Phase 8 (axe + 375 px overflow checks pass on the new fields).
+- RESOLVED 2026-10-10: `SESSION_SECRET`, `IP_HASH_SALT`, `ADMIN_PASSWORD_HASH` are now set on Vercel (Production + Preview, sensitive) and production was redeployed. Raghav logged in on the live admin and confirmed uploads work. The Blob token is set (store `media`, all environments).
 - Leftovers on Raghav's Vercel account (all free, empty): store `media-test` (unused, can be deleted in the dashboard) and project `portfolio-e2e` + store `media-e2e` (hold the E2E token; keep while you run E2E).
 
 ### Built
