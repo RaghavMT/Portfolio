@@ -4,6 +4,8 @@ import {
   formatDateRange,
   formatDuration,
   formatExpected,
+  formatRelativeTime,
+  formatAdminTimestamp,
 } from "@/lib/format";
 
 describe("formatMonth", () => {
@@ -46,5 +48,40 @@ describe("formatDuration", () => {
   });
   it("uses the current month when ongoing", () => {
     expect(formatDuration("2026-05-01", null, now)).toBe("6 mos");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = new Date("2026-10-10T12:00:00Z");
+  const ago = (ms: number) => new Date(now.getTime() - ms);
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+
+  it("says just now under a minute", () => {
+    expect(formatRelativeTime(ago(20_000), now)).toBe("just now");
+  });
+  it("counts minutes, hours and days", () => {
+    expect(formatRelativeTime(ago(5 * MIN), now)).toBe("5 min ago");
+    expect(formatRelativeTime(ago(HOUR), now)).toBe("1 hr ago");
+    expect(formatRelativeTime(ago(3 * HOUR), now)).toBe("3 hrs ago");
+    expect(formatRelativeTime(ago(DAY), now)).toBe("1 day ago");
+    expect(formatRelativeTime(ago(6 * DAY), now)).toBe("6 days ago");
+  });
+  it("falls back to a date after a week", () => {
+    expect(formatRelativeTime(ago(10 * DAY), now)).toBe("30 Sep 2026");
+  });
+  it("treats a future time as just now", () => {
+    expect(formatRelativeTime(new Date(now.getTime() + MIN), now)).toBe(
+      "just now",
+    );
+  });
+});
+
+describe("formatAdminTimestamp", () => {
+  it("shows Asia/Kolkata time", () => {
+    expect(formatAdminTimestamp(new Date("2026-10-10T12:00:00Z"))).toBe(
+      "10 Oct 2026, 5:30 pm",
+    );
   });
 });
