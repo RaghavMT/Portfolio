@@ -1,10 +1,12 @@
 import "server-only";
 import { asc, desc, eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "../db/client";
 import {
   certifications,
   education,
   experiences,
+  projects,
   siteSettings,
   skillGroups,
   skills,
@@ -106,3 +108,39 @@ export async function getAdminSettings() {
 export type AdminSettings = NonNullable<
   Awaited<ReturnType<typeof getAdminSettings>>
 >;
+
+/** Project list rows: no long Markdown bodies, drafts included, in display order. */
+export function listProjects() {
+  return db
+    .select({
+      id: projects.id,
+      slug: projects.slug,
+      title: projects.title,
+      summary: projects.summary,
+      tech: projects.tech,
+      status: projects.status,
+      featured: projects.featured,
+      updatedAt: projects.updatedAt,
+    })
+    .from(projects)
+    .orderBy(asc(projects.sortOrder), desc(projects.createdAt));
+}
+export type AdminProjectRow = Awaited<ReturnType<typeof listProjects>>[number];
+
+/** One full project for the edit form, or null (also for a malformed id). */
+export async function getAdminProject(id: string) {
+  if (!z.uuid().safeParse(id).success) return null;
+  const [row] = await db.select().from(projects).where(eq(projects.id, id));
+  return row ?? null;
+}
+export type AdminProject = NonNullable<
+  Awaited<ReturnType<typeof getAdminProject>>
+>;
+
+/** Every tech tag used on any project, for the tag input's suggestions. */
+export async function listProjectTechTags() {
+  const rows = await db.select({ tech: projects.tech }).from(projects);
+  return [...new Set(rows.flatMap((r) => r.tech))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}

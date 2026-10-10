@@ -34,6 +34,8 @@ type Props<T extends { id: string }> = {
   renderItem: (item: T) => ReactNode;
   renderActions?: (item: T) => ReactNode;
   onReorder: (ids: string[]) => Promise<ActionResult<void>>;
+  /** False hides the handle and ↑/↓ (e.g. while a filter shows only part of the list). Default true. */
+  reorderable?: boolean;
 };
 
 function Row<T extends { id: string }>({
@@ -45,6 +47,7 @@ function Row<T extends { id: string }>({
   onMove,
   children,
   actions,
+  reorderable,
 }: {
   item: T;
   index: number;
@@ -54,6 +57,7 @@ function Row<T extends { id: string }>({
   onMove: (from: number, to: number) => void;
   children: ReactNode;
   actions?: ReactNode;
+  reorderable: boolean;
 }) {
   const {
     attributes,
@@ -67,40 +71,46 @@ function Row<T extends { id: string }>({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex items-center gap-2 rounded-lg border bg-card p-2 ${isDragging ? "z-10 shadow-lg" : ""}`}
+      className={`flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2 sm:flex-nowrap ${isDragging ? "z-10 shadow-lg" : ""}`}
     >
-      <button
-        type="button"
-        className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-        aria-label={`Drag to reorder ${label}`}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-4" aria-hidden />
-      </button>
-      <div className="min-w-0 flex-1">{children}</div>
+      {reorderable ? (
+        <button
+          type="button"
+          className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+          aria-label={`Drag to reorder ${label}`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-4" aria-hidden />
+        </button>
+      ) : null}
+      <div className="min-w-0 flex-1 basis-40">{children}</div>
       <div className="flex shrink-0 items-center gap-1">
         {actions}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={index === 0}
-          onClick={() => onMove(index, index - 1)}
-          aria-label={`Move ${noun} ${label} up`}
-        >
-          <ArrowUp aria-hidden />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={index === count - 1}
-          onClick={() => onMove(index, index + 1)}
-          aria-label={`Move ${noun} ${label} down`}
-        >
-          <ArrowDown aria-hidden />
-        </Button>
+        {reorderable ? (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={index === 0}
+              onClick={() => onMove(index, index - 1)}
+              aria-label={`Move ${noun} ${label} up`}
+            >
+              <ArrowUp aria-hidden />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={index === count - 1}
+              onClick={() => onMove(index, index + 1)}
+              aria-label={`Move ${noun} ${label} down`}
+            >
+              <ArrowDown aria-hidden />
+            </Button>
+          </>
+        ) : null}
       </div>
     </li>
   );
@@ -117,6 +127,7 @@ export function SortableList<T extends { id: string }>({
   renderItem,
   renderActions,
   onReorder,
+  reorderable = true,
 }: Props<T>) {
   const router = useRouter();
   const [ordered, setOrdered] = useState(items);
@@ -189,6 +200,7 @@ export function SortableList<T extends { id: string }>({
               label={getLabel(item)}
               onMove={move}
               actions={renderActions?.(item)}
+              reorderable={reorderable}
             >
               {renderItem(item)}
             </Row>
