@@ -2,6 +2,32 @@
 
 _Updated at the end of every task. Newest phase on top._
 
+## Phase 7 — Dashboard, preview, backup · built and verified locally (2026-10-10)
+
+### Open
+- **Not looked at by hand.** Only automated checks ran: the dashboard has axe (0 serious/critical) and a 375 px overflow check; the preview page and the Settings Backup block have neither a manual look nor an axe pass of their own (Settings is axe-checked as a whole in `admin-settings.spec.ts`, which passed). A visual pass of dashboard, preview (draft and published, light/dark, 375 / 1440 px) and a downloaded backup file belongs in Phase 8.
+- **Unit test flaked once.** One `pnpm test` run (while the E2E server was shutting down) showed 1 failed of 418; the output was cut to the summary line, so the test is unknown. The next 5 runs and the final run passed (430/430). If it recurs, capture the full output.
+- The earlier flaky "visible on the public site <= 5 s" E2E check did not appear in the final full run; still not root-caused (Phase 8).
+- Live production dashboard shows the seed `TODO:` text as unfinished checklist items (about, SEO description) until real content is entered via the admin.
+
+### Built
+- Dashboard (FR-ADM-02): `src/lib/admin/dashboard.ts` (checklist + résumé age rules), `getDashboardData()`, cards (published, drafts, unread, résumé last updated + 90-day warning), six-item "Profile completeness" list that links to the fixing form, quick actions. `#resume` and `#seo` anchors added so the links land on the right block.
+- Draft preview (FR-ADM-09): `/admin/preview/projects/[id]` in the new `(preview)` route group; `site-shell.tsx` and `project-article.tsx` extracted from the public layout/page so the preview cannot drift; sticky "Preview — not public" banner; Preview button on the saved project form. Logged-out visitors are redirected to login (D41).
+- Backup (FR-ADM-10): `exportBackup()` Server Action → JSON text → file download from Settings → Backup. `src/lib/admin/backup.ts` (`BACKUP_TABLES`, filename, blob URL list), `src/server/admin/backup.ts` (reads), `BackupButton`.
+- Decision Log D41-D44. No new dependency, no migration, `proxy.ts` untouched.
+
+### AC evidence
+- `pnpm lint`, `typecheck`, `format:check`, `build` exit 0. `pnpm test` -> 31 files, 430 tests passed. Written first and seen failing: `dashboard.test.ts` (14), `backup.test.ts` (11, includes "BACKUP_TABLES equals every table in schema.ts except login_attempts"). The authorization sweep picked up `actions/admin/backup.ts` automatically.
+- `pnpm test:e2e` (test DB + test Blob store, final tree): **89 passed, 10 skipped** (desktop-only specs on mobile), exit 0.
+  - Checklist reflects reality: `admin-dashboard.spec.ts` polls until each card number (published, drafts, unread) and each of the six checklist ticks equals a fresh SQL read of the test DB; inserting a draft by SQL raises the Drafts card; quick-action and checklist links land on `/admin/projects/new`, `/admin/profile#resume`, `/admin/settings#seo`; axe 0 serious/critical and no overflow at 375 px.
+  - Preview: in the project lifecycle spec, the saved draft's Preview button opens a new tab with the banner, the title as the only `h1`, the summary and the public site header; a logged-out context on the same URL ends on `/admin/login` and never shows the summary; an unknown id and `not-a-uuid` show "Page not found".
+  - Backup: `admin-backup.spec.ts` clicks Download backup; file name matches `portfolio-backup-YYYY-MM-DD.json`; keys are exactly `blobUrls`, `exportedAt`, `tables`; the 10 content tables are present as arrays, `login_attempts` is absent; one `site_settings` row without `sessionVersion`; a seeded project's id is in the file.
+
+### Notes
+- The E2E server build hit the known Neon `fetch failed` once (first dashboard run, and once more in a later partial run that still passed); the immediate rerun was clean. `upstream image ... 404` lines in the E2E log come from the lifecycle spec's synthetic cover URL and are not new.
+- The `admin` Playwright project runs spec files in parallel, so specs that compare against the DB poll until page and SQL agree instead of comparing once.
+- `pnpm test:e2e <file> --project=admin` still runs every admin spec because of the project's `testMatch`; pass a `--grep` to narrow it.
+
 ## Phase 6 — Contact form & inbox · built and verified locally (2026-10-10)
 
 ### Open
